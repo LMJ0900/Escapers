@@ -1,6 +1,6 @@
 # Escapers — 방탈출 리뷰 사이트
 
-Next.js 16 (App Router) · React 19 · TanStack Query v5 · TypeScript · Tailwind CSS v4
+Next.js 16 (App Router) · React 19 · TanStack Query v5 · TypeScript · CSS (전역 CSS + CSS Modules)
 
 ## 개발
 
@@ -171,7 +171,7 @@ src/
       _component/        해당 라우트 전용 컴포넌트 (밑줄 = 라우팅에서 제외되는 폴더)
     layout.tsx          루트 레이아웃. metadata, <html lang="ko">, globals.css import
     page.tsx            홈 라우트 `/`. 현재는 자리표시자만 렌더
-    globals.css         Tailwind v4 진입점 (style/ 로 이동 예정)
+    globals.css         전역 스타일 진입점. colors.css · semantic.css 를 import
   api/                  원격 호출 레이어. fetch 래퍼 + 엔드포인트별 함수
   hooks/                공용 커스텀 훅 (쿼리 · 뮤테이션 훅, UI 훅 등)
   components/           도메인에 종속되지 않는 공용 컴포넌트
@@ -193,7 +193,6 @@ tsconfig.json           strict 모드, `@/*` → `./src/*` 경로 별칭, bundle
 eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
 .prettierrc.json        Prettier 포맷 규칙
 .prettierignore         Prettier 제외 경로
-postcss.config.mjs      `@tailwindcss/postcss` 플러그인만 등록
 AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
 CLAUDE.md               `@AGENTS.md` 참조 한 줄
 .gitignore              `.env*` 전체 무시, `next-env.d.ts` · `*.tsbuildinfo` 포함
@@ -205,7 +204,7 @@ CLAUDE.md               `@AGENTS.md` 참조 한 줄
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | 런타임 | `next` 16.3.3, `react` / `react-dom` 19.2.8                                                                                          |
 | 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools` (설치만, 코드 연결 전)                                                 |
-| 개발   | `typescript` 5, `tailwindcss` 4 + `@tailwindcss/postcss`, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier` |
+| 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier` |
 
 ## 데이터 계층 (예정)
 

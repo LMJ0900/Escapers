@@ -1,12 +1,120 @@
 :root {
-    --color-error: var(--color-red-800);
-    --color-success: var(--color-emerald-600);
-    --color-text: var(--color-gray-950);
-    --color-bg: var(--color-white);
+  /* ================= 배경 / 표면 (Surface) ================= */
+  --color-bg: var(--color-orange-50); /* 페이지 기본 배경 */
+  --color-bg-subtle: var(--color-orange-100); /* 살짝 구분되는 영역 */
+  --color-surface: var(--color-white); /* 카드 · 패널 · 모달 */
+  --color-surface-hover: var(--color-stone-100); /* 표면 hover */
+  --color-surface-sunken: var(--color-stone-200); /* 입력창 트랙 등 파인 영역 */
+
+  /* ================= 전경 텍스트 (Text) ================= */
+  --color-text: var(--color-gray-950); /* 본문 기본 */
+  --color-text-muted: var(--color-stone-600); /* 보조 텍스트 (구 --color-text2) */
+  --color-text-subtle: var(--color-stone-400); /* 캡션 · placeholder · 비활성 */
+  --color-text-inverse: var(--color-orange-50); /* 어두운/브랜드 배경 위 텍스트 */
+
+  /* ================= 테두리 (Border) ================= */
+  --color-border: var(--color-stone-300); /* 기본 구분선 */
+  --color-border-subtle: var(--color-stone-200); /* 약한 구분선 */
+  --color-border-strong: var(--color-stone-400); /* 강조 구분선 */
+  --color-border-focus: var(--color-orange-500); /* 포커스 링 */
+
+  /* ================= 로고 / 브랜드 (Brand) ================= */
+  --color-logo: var(--color-stone-900); /* 워드마크 */
+  --color-brand: var(--color-orange-600); /* 주요 액션 · 강조 요소 */
+  --color-brand-hover: var(--color-orange-700); /* 브랜드 hover/active */
+  --color-brand-subtle: var(--color-orange-100); /* 브랜드 톤 배경 */
+  --color-brand-text: var(--color-orange-800); /* 밝은 배경 위 브랜드 텍스트 */
+
+  /* ================= 링크 (Link) ================= */
+  --color-link: var(--color-orange-700);
+  --color-link-hover: var(--color-orange-900);
+
+  /* ================= 상태: 성공 (Success) ================= */
+  --color-success: var(--color-emerald-600); /* 아이콘 · 텍스트 */
+  --color-success-strong: var(--color-emerald-700); /* 채움 버튼 등 */
+  --color-success-bg: var(--color-emerald-50); /* 배너 배경 */
+  --color-success-border: var(--color-emerald-200);
+
+  /* ================= 상태: 위험 / 오류 (Danger) ================= */
+  --color-error: var(--color-red-800); /* 기존 유지 (= danger-strong) */
+  --color-danger: var(--color-red-600); /* 아이콘 · 텍스트 */
+  --color-danger-strong: var(--color-red-800); /* 채움 버튼 등 */
+  --color-danger-bg: var(--color-red-50); /* 배너 배경 */
+  --color-danger-border: var(--color-red-200);
+
+  /* ================= 상태: 경고 (Warning) ================= */
+  --color-warning: var(--color-amber-600);
+  --color-warning-strong: var(--color-amber-700);
+  --color-warning-bg: var(--color-amber-50);
+  --color-warning-border: var(--color-amber-200);
+
+  /* ================= 상태: 정보 (Info) ================= */
+  --color-info: var(--color-sky-600);
+  --color-info-strong: var(--color-sky-700);
+  --color-info-bg: var(--color-sky-50);
+  --color-info-border: var(--color-sky-200);
+
+  /* ================= 오버레이 ================= */
+  --color-overlay: var(--color-stone-950); /* 투명도는 사용처에서 지정 */
 }
+
 @media (prefers-color-scheme: dark) {
-    :root {
-        --color-bg: var(--color-gray-950);
-        --color-text: var(--color-white);
-    }
+  :root {
+    /* ---- Surface ---- */
+    --color-bg: var(--color-gray-950);
+    --color-bg-subtle: var(--color-gray-900);
+    --color-surface: var(--color-gray-900);
+    --color-surface-hover: var(--color-gray-800);
+    --color-surface-sunken: var(--color-gray-800);
+
+    /* ---- Text ---- */
+    --color-text: var(--color-white);
+    --color-text-muted: var(--color-stone-400);
+    --color-text-subtle: var(--color-stone-500);
+    --color-text-inverse: var(--color-gray-950);
+
+    /* ---- Border ---- */
+    --color-border: var(--color-gray-700);
+    --color-border-subtle: var(--color-gray-800);
+    --color-border-strong: var(--color-gray-600);
+    --color-border-focus: var(--color-orange-400);
+
+    /* ---- Brand ---- */
+    --color-logo: var(--color-rose-100);
+    --color-brand: var(--color-orange-400);
+    --color-brand-hover: var(--color-orange-300);
+    --color-brand-subtle: var(--color-orange-950);
+    --color-brand-text: var(--color-orange-300);
+
+    /* ---- Link ---- */
+    --color-link: var(--color-orange-300);
+    --color-link-hover: var(--color-orange-200);
+
+    /* ---- Success ---- */
+    --color-success: var(--color-emerald-400);
+    --color-success-strong: var(--color-emerald-300);
+    --color-success-bg: var(--color-emerald-950);
+    --color-success-border: var(--color-emerald-800);
+
+    /* ---- Danger ---- */
+    --color-danger: var(--color-red-400);
+    --color-danger-strong: var(--color-red-300);
+    --color-danger-bg: var(--color-red-950);
+    --color-danger-border: var(--color-red-800);
+
+    /* ---- Warning ---- */
+    --color-warning: var(--color-amber-400);
+    --color-warning-strong: var(--color-amber-300);
+    --color-warning-bg: var(--color-amber-950);
+    --color-warning-border: var(--color-amber-800);
+
+    /* ---- Info ---- */
+    --color-info: var(--color-sky-400);
+    --color-info-strong: var(--color-sky-300);
+    --color-info-bg: var(--color-sky-950);
+    --color-info-border: var(--color-sky-800);
+
+    /* ---- Overlay ---- */
+    --color-overlay: var(--color-black);
+  }
 }

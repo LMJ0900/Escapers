@@ -10,15 +10,16 @@ npm run dev
 
 http://localhost:3000
 
-| 스크립트               | 설명                     |
-| ---------------------- | ------------------------ |
-| `npm run dev`          | 개발 서버                |
-| `npm run build`        | 프로덕션 빌드            |
-| `npm run start`        | 빌드 결과 실행           |
-| `npm run lint`         | ESLint                   |
-| `npm run typecheck`    | `tsc --noEmit` 타입 검사 |
-| `npm run format`       | Prettier 로 전체 포맷팅  |
-| `npm run format:check` | 포맷 위반만 검사 (CI 용) |
+| 스크립트                  | 설명                                                    |
+| ------------------------- | ------------------------------------------------------- |
+| `npm run dev`             | 개발 서버                                               |
+| `npm run build`           | 프로덕션 빌드                                           |
+| `npm run start`           | 빌드 결과 실행                                          |
+| `npm run lint`            | ESLint                                                  |
+| `npm run typecheck`       | `tsc --noEmit` 타입 검사                                |
+| `npm run format`          | Prettier 로 전체 포맷팅                                 |
+| `npm run format:check`    | 포맷 위반만 검사 (CI 용)                                |
+| `npm run createComponent` | 컴포넌트 폴더 스캐폴드 생성 (아래 "컴포넌트 생성" 참고) |
 
 ## Lint & 포맷
 
@@ -33,7 +34,59 @@ ESLint 는 코드 품질, Prettier 는 포맷을 담당한다. 역할이 겹치�
 
 - 커밋 전 `npm run lint` + `npm run format:check` 를 통과시킨다.
 - 포맷만 어긋난 경우 `npm run format` 으로 일괄 정리한다.
+- `.vscode/settings.json` 이 저장 시 Prettier 포맷 + ESLint 자동수정을 건다. 필요한 확장(`esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`)은 `.vscode/extensions.json` 에 추천 등록돼 있다.
 - `AGENTS.md` · `CLAUDE.md` 는 `next dev` 가 매번 재생성하므로 Prettier 대상에서 제외한다.
+
+## 스타일
+
+전역 스타일 토큰과 CSS Modules 를 함께 쓴다.
+
+| 파일                        | 역할                                                    |
+| --------------------------- | ------------------------------------------------------- |
+| `src/styles/colors.css`     | 원시 색상 팔레트 (`--color-red-800` 등)                 |
+| `src/styles/semantic.css`   | 의미 기반 토큰 · 전역 시맨틱 클래스 (`--color-text` 등) |
+| `src/app/globals.css`       | 진입점. 위 두 파일을 import                             |
+| `src/util/BindClassName.ts` | `bindClassNames` — CSS Module 클래스명 바인딩 헬퍼      |
+
+### `bindClassNames`
+
+```ts
+import { bindClassNames } from "@/util/BindClassName";
+import styles from "./Header.module.css";
+
+const cx = bindClassNames(styles);
+
+cx("root"); // styles.root
+cx("root", isActive && "active"); // 조건부 (falsy 인자는 무시)
+cx({ root: true, active: isOpen }); // 불리언 맵
+cx("root", "global-class"); // 등록 안 된 키는 원본 문자열 그대로 통과 (전역 시맨틱 클래스용)
+```
+
+- 여러 모듈을 넘기면 병합한다: `bindClassNames(styles, extra)`. 병합 시 키가 겹치면 에러를 던진다.
+- 결과 문자열은 공백 하나로 join 한다.
+
+## 컴포넌트 생성
+
+`scripts/createComponent.mjs` — 외부 의존성 없는 스캐폴더 (Node 내장 모듈만).
+컴포넌트 폴더 하나에 `Xxx.tsx` · `Xxx.module.css` · `index.tsx` 3파일을 만들고,
+템플릿은 `bindClassNames` 를 쓴다.
+
+```bash
+npm run createComponent -- Button                            # src/components/Button/
+npm run createComponent -- Header Footer                     # 여러 개 한 번에
+npm run createComponent -- LoginForm --app login --client    # src/app/login/_component/LoginForm/ + "use client"
+npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹·중첩 경로는 따옴표
+```
+
+| 옵션            | 설명                                         |
+| --------------- | -------------------------------------------- |
+| (기본)          | `src/components/<Name>/` 에 생성             |
+| `--app <route>` | `src/app/<route>/_component/<Name>/` 에 생성 |
+| `--client`      | 파일 상단에 `"use client"` 추가              |
+| `--force`       | 이미 있으면 덮어쓴다                         |
+
+- 컴포넌트 이름은 PascalCase 여야 한다. 라우트 폴더가 없으면 자동 생성된다.
+- 인자 없이 실행하면 이름 입력 프롬프트가 뜬다 (이 경우 플래그는 못 준다). 프롬프트에 명령어를 통째로 붙여넣지 말 것.
 
 ## 환경 변수
 
@@ -177,8 +230,8 @@ src/
   components/           도메인에 종속되지 않는 공용 컴포넌트
   provider/             전역 프로바이더 (QueryClientProvider + Devtools 등)
   constant/             공용 상수 (라우트 경로, 쿼리 키, 옵션 목록 등)
-  style/                전역 스타일 / 테마 토큰
-  util/                 순수 헬퍼 함수
+  styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css)
+  util/                 순수 헬퍼 함수 (BindClassName 등)
 ```
 
 도메인은 계속 추가된다. 특정 화면에서만 쓰는 코드는 그 라우트 폴더 안(`_component/` 등)에 두고,
@@ -188,11 +241,13 @@ src/
 
 ```
 docs/요구사항명세서.md   기능 요구사항 (git 에 커밋된 유일한 문서)
+scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
 next.config.ts          Next 설정 (현재 비어 있음, 기본값)
 tsconfig.json           strict 모드, `@/*` → `./src/*` 경로 별칭, bundler 해석
 eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
 .prettierrc.json        Prettier 포맷 규칙
 .prettierignore         Prettier 제외 경로
+.vscode/                에디터 공유 설정 — settings.json(저장 시 포맷) · extensions.json(추천 확장)
 AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
 CLAUDE.md               `@AGENTS.md` 참조 한 줄
 .gitignore              `.env*` 전체 무시, `next-env.d.ts` · `*.tsbuildinfo` 포함
@@ -200,10 +255,10 @@ CLAUDE.md               `@AGENTS.md` 참조 한 줄
 
 ### 의존성
 
-| 구분   | 패키지                                                                                                                               |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 런타임 | `next` 16.3.3, `react` / `react-dom` 19.2.8                                                                                          |
-| 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools` (설치만, 코드 연결 전)                                                 |
+| 구분   | 패키지                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------ |
+| 런타임 | `next` 16.3.3, `react` / `react-dom` 19.2.8                                                |
+| 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools` (설치만, 코드 연결 전)       |
 | 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier` |
 
 ## 데이터 계층 (예정)

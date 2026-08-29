@@ -1,0 +1,26 @@
+{
+  // 저장 시 포매터(Prettier) 실행
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+
+  // 이 워크스페이스의 기본 포매터를 Prettier 확장으로 고정
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // 저장 시 ESLint 자동수정도 실행 (수동 저장 Ctrl+S 에서만)
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // Prettier 설정 파일이 있을 때만 포맷 (설정 없는 프로젝트에서 오작동 방지)
+  "prettier.requireConfig": true,
+
+  // 언어별로 한 번 더 못박음 — 개인 전역 설정에 다른 포매터가 잡혀 있어도 이 레포에선 Prettier
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+}

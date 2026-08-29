@@ -1,0 +1,12 @@
+:root {
+    --color-error: var(--color-red-800);
+    --color-success: var(--color-emerald-600);
+    --color-text: var(--color-gray-950);
+    --color-bg: var(--color-white);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --color-bg: var(--color-gray-950);
+        --color-text: var(--color-white);
+    }
+}

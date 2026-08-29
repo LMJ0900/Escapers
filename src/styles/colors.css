@@ -2,20 +2,19 @@
  * 전역 컬러 팔레트 (원시 토큰)
  *
  * 웹에서 널리 쓰이는 색상 스케일 전체(50 ~ 950).
- * Tailwind v4 에 내장돼 있지만, 저장소가 팔레트의 단일 원천이 되도록 명시한다.
+ * 저장소가 팔레트의 단일 원천이 되도록 CSS 커스텀 프로퍼티로 명시한다.
  *
  * 사용:
- *   유틸리티  →  bg-slate-500 / text-red-600 / border-blue-200 ...
- *   순수 CSS →  var(--color-slate-500)
+ *   var(--color-slate-500) / var(--color-red-600) ...
  *
- * globals.css 에서 아래 한 줄로 불러온다 ( @import "tailwindcss" 다음 ):
+ * globals.css 에서 아래 한 줄로 불러온다:
  *   @import "../styles/colors.css";
  *
  * 의미 토큰(surface / text / border / primary ...)은 여기 두지 말고
  * 별도 파일(semantic.css 등)에서 이 원시 토큰을 참조하도록 구성한다.
  */
 
-@theme {
+:root {
   /* ================= Neutral ================= */
 
   /* ---- Slate ---- */

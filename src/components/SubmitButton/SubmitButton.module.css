@@ -1,0 +1,33 @@
+.root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 17px;
+  border: none;
+  cursor: pointer;
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  font-family: var(--font-text);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background 0.15s ease;
+}
+
+.root:not(:disabled):hover {
+  background: var(--color-brand-hover);
+}
+
+.root:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .root {
+    padding: 18px;
+  }
+}

@@ -62,37 +62,3 @@
 .forgot:hover {
   color: var(--color-link-hover);
 }
-
-.submit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 17px;
-  border: none;
-  cursor: pointer;
-  background: var(--color-brand);
-  color: var(--color-text-inverse);
-  font-family: var(--font-text);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  transition: background 0.15s ease;
-}
-
-.submit:hover {
-  background: var(--color-brand-hover);
-}
-
-.submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (max-width: 480px) {
-  .submit {
-    padding: 18px;
-  }
-}

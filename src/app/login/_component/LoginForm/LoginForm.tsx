@@ -3,13 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { LuArrowRight } from "react-icons/lu";
 
 import {
   loginRequestSchema,
   type LoginRequest,
-} from "@/api/auth/request/LoginReq";
+} from "@/api/domain/auth/request/LoginReq";
 import InputBox from "@/components/InputBox";
+import SubmitButton from "@/components/SubmitButton";
 import { bindClassNames } from "@/util/BindClassName";
 
 import SocialLoginForm from "../SocialLoginForm/SocialLoginForm";
@@ -76,14 +76,9 @@ export default function LoginForm() {
           </Link>
         </div>
 
-        <button
-          type="submit"
-          className={cx("submit")}
-          disabled={!isValid || !email || !password}
-        >
+        <SubmitButton disabled={!isValid || !email || !password}>
           로그인
-          <LuArrowRight size={16} strokeWidth={1.5} aria-hidden />
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

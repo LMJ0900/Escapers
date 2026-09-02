@@ -1,0 +1,8 @@
+.root {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--color-logo);
+  text-decoration: none;
+}

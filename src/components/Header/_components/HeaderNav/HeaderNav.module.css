@@ -1,0 +1,22 @@
+.root {
+  display: flex;
+  gap: 34px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--color-logo);
+}
+
+@media (max-width: 768px) {
+  .root {
+    gap: 20px;
+  }
+}

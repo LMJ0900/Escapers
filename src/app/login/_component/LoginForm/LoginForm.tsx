@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import {
   loginRequestSchema,
   type LoginRequest,
-} from "@/api/domain/auth/request/LoginReq";
+} from "@/api/domain/auth/request/LoginRes";
 import InputBox from "@/components/InputBox";
 import SubmitButton from "@/components/SubmitButton";
 import { bindClassNames } from "@/util/BindClassName";

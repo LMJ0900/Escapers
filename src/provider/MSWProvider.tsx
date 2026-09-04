@@ -11,7 +11,10 @@ export default function MSWProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!MOCKING_ENABLED) return;
-    enableApiMocking().then(() => setReady(true));
+    // 목킹 기동에 실패해도 앱은 렌더한다(빈 화면 방지).
+    enableApiMocking()
+      .catch((err) => console.error("[MSW] 목킹 기동 실패:", err))
+      .finally(() => setReady(true));
   }, []);
 
   if (!ready) return null;

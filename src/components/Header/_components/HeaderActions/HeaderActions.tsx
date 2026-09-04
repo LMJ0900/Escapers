@@ -14,8 +14,7 @@ export default function HeaderActions() {
         <SearchIcon />
       </button>
 
-      {/* TODO: 실제 로그인 라우트가 정해지면 href 교체 */}
-      <Link href="/login" className={cx("login")}>
+      <Link href="/auth/login" className={cx("login")}>
         로그인
       </Link>
     </div>

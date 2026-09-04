@@ -1,13 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 
+import type { ApiErrorResponse } from "@/api/ApiErrorRes";
+import { AuthMutation } from "@/api/domain/auth/login/Auth.mutation";
 import {
   loginRequestSchema,
   type LoginRequest,
-} from "@/api/domain/auth/request/LoginRes";
+} from "@/api/domain/auth/login/request/LoginReq";
+import type { LoginResponse } from "@/api/domain/auth/login/response/LoginRes";
 import InputBox from "@/components/InputBox";
 import SubmitButton from "@/components/SubmitButton";
 import { bindClassNames } from "@/util/BindClassName";
@@ -32,10 +36,19 @@ export default function LoginForm() {
   // 입력 상태를 watch 로 감시 (제출 버튼 활성화 등에 사용)
   const [email, password] = watch(["email", "password"]);
 
-  // TODO: 로그인 API(useMutation) 연결
-  const onSubmit = (data: LoginRequest) => {
-    console.log(data);
-  };
+  const {
+    mutate: login,
+    isPending,
+    error,
+  } = useMutation<LoginResponse, ApiErrorResponse, LoginRequest>({
+    mutationFn: AuthMutation.postLogin,
+    onSuccess: (res) => {
+      // TODO: 토큰 저장 / 로그인 후 라우팅
+      console.log("로그인 성공", res);
+    },
+  });
+
+  const onSubmit = (data: LoginRequest) => login(data);
 
   return (
     <div className={cx("root")}>
@@ -76,8 +89,10 @@ export default function LoginForm() {
           </Link>
         </div>
 
-        <SubmitButton disabled={!isValid || !email || !password}>
-          로그인
+        {error && <p className={cx("error")}>{error.message}</p>}
+
+        <SubmitButton disabled={!isValid || !email || !password || isPending}>
+          {isPending ? "로그인 중…" : "로그인"}
         </SubmitButton>
       </form>
     </div>

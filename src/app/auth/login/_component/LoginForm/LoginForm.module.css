@@ -35,6 +35,13 @@
   justify-content: space-between;
 }
 
+.error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-danger);
+}
+
 .remember {
   display: flex;
   align-items: center;

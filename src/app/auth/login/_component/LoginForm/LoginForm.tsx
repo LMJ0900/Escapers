@@ -3,9 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import type { ApiErrorResponse } from "@/api/ApiErrorRes";
+import { setAuthSession } from "@/api/domain/auth/Auth.action";
 import { AuthMutation } from "@/api/domain/auth/login/Auth.mutation";
 import {
   loginRequestSchema,
@@ -22,6 +24,8 @@ import styles from "./LoginForm.module.css";
 const cx = bindClassNames(styles);
 
 export default function LoginForm() {
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -42,9 +46,12 @@ export default function LoginForm() {
     error,
   } = useMutation<LoginResponse, ApiErrorResponse, LoginRequest>({
     mutationFn: AuthMutation.postLogin,
-    onSuccess: (res) => {
-      // TODO: 토큰 저장 / 로그인 후 라우팅
-      console.log("로그인 성공", res);
+    onSuccess: async (res) => {
+      await setAuthSession({
+        accessToken: res.accessJwt,
+        refreshToken: res.refreshJwt,
+      });
+      router.push("/");
     },
   });
 

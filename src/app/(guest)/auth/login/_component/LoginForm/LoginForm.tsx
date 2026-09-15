@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import type { ApiErrorResponse } from "@/api/ApiErrorRes";
-import { setAuthSession } from "@/api/domain/auth/Auth.action";
+import { setAuthToken } from "@/api/domain/auth/Auth.action";
 import { AuthMutation } from "@/api/domain/auth/login/Auth.mutation";
 import {
   loginRequestSchema,
@@ -47,7 +47,7 @@ export default function LoginForm() {
   } = useMutation<LoginResponse, ApiErrorResponse, LoginRequest>({
     mutationFn: AuthMutation.postLogin,
     onSuccess: async (res) => {
-      await setAuthSession({
+      await setAuthToken({
         accessToken: res.accessJwt,
         refreshToken: res.refreshJwt,
       });

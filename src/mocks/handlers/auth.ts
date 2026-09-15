@@ -26,7 +26,7 @@ const fail = (error: ApiErrorResponse) =>
 
 export const handlers = [
   http.post("*/auth/login", async ({ request }) => {
-    // Next.js Server Action(예: setAuthSession)은 호출된 페이지 URL로 POST하므로,
+    // Next.js Server Action(예: setAuthToken)은 호출된 페이지 URL로 POST하므로,
     // 로그인 페이지(/auth/login)에서 실행되면 이 목 핸들러의 경로와 우연히 겹친다.
     // Next-Action 헤더가 있으면 서버 액션 요청이므로 목킹하지 않고 그대로 통과시킨다.
     if (request.headers.has("Next-Action")) return passthrough();

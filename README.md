@@ -90,9 +90,13 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
 
 ## 환경 변수
 
-`.env.local` 에 정의한다.
-
-- `NEXT_PUBLIC_SITE_URL` — 서버에서 자체 Route Handler 를 절대 URL 로 호출할 때 사용 (예: `http://localhost:3000`)
+- `.env.local` 에 정의한다.
+  - `NEXT_PUBLIC_SITE_URL` — 서버에서 자체 Route Handler 를 절대 URL 로 호출할 때 사용 (예: `http://localhost:3000`)
+- `.env.development` 에 팀 공통값이 커밋돼 있다 (API 목킹 기본 설정).
+  - `NEXT_PUBLIC_API_MOCKING` — `enabled`(기본, MSW 목킹) / `disabled`
+  - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소. 목킹 시엔 빈 문자열(같은 오리진 요청을 서비스워커가 가로챔)
+  - 실제 백엔드에 붙이려면 `.env.development.local` 에 개인적으로 덮어쓴다 (예:
+    `NEXT_PUBLIC_API_MOCKING=disabled`, `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`).
 
 ## 커밋 컨벤션
 
@@ -214,24 +218,36 @@ docs/18-branch-guide   ─┘                         ▲
 
 ## 구조
 
-레이어별 디렉터리 스캐폴드를 잡아 둔 상태다. 아래 표시한 `.tsx` 파일 3개 외에는 아직 빈 폴더이며, 각 폴더의 역할은 다음과 같다.
+레이어별 디렉터리로 나뉘어 있다. `hooks/` 만 아직 빈 폴더이고 나머지는 실제 코드가 있다.
+각 폴더의 역할은 다음과 같다.
 
 ```
 src/
   app/                  App Router. 라우팅 + 페이지 (되도록 얇게 유지)
-    (main)/             랜딩 페이지 라우트 그룹. 랜딩 화면과 그 전용 컴포넌트를 함께 둠 (URL 미노출)
-    <domain>/           도메인별 라우트 세그먼트 (인증 · 테마 · 후기 등 추가 예정)
+    (guest)/            비로그인 전용 라우트 그룹. 로그인 상태로 진입 시 `/` 로 redirect (URL 미노출)
+      auth/login/        로그인 페이지 (`LoginForm`, `SocialLoginForm`)
+    (protected)/        로그인 필수 라우트 그룹. 비로그인 진입 시 `/auth/login` 으로 redirect (URL 미노출)
+    auth/logout/         로그아웃 처리 라우트 (`LogoutHandler`)
+    <domain>/           도메인별 라우트 세그먼트 (테마 · 후기 등 추가 예정)
       _component/        해당 라우트 전용 컴포넌트 (밑줄 = 라우팅에서 제외되는 폴더)
-    layout.tsx          루트 레이아웃. metadata, <html lang="ko">, globals.css import
+    layout.tsx          루트 레이아웃. metadata, <html lang="ko">, globals.css, CoreProvider import
     page.tsx            홈 라우트 `/`. 현재는 자리표시자만 렌더
     globals.css         전역 스타일 진입점. colors.css · semantic.css 를 import
-  api/                  원격 호출 레이어. fetch 래퍼 + 엔드포인트별 함수
+  api/                  원격 호출 레이어
+    ApiClient.ts         axios 인스턴스. ApiClient.interceptor.ts 에서 401 시 accessToken 자동 재발급
+    ApiClient.error.ts · ApiErrorRes.ts · ApiRes.ts   공통 에러/응답 타입 파싱
+    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user)
   hooks/                공용 커스텀 훅 (쿼리 · 뮤테이션 훅, UI 훅 등)
-  components/           도메인에 종속되지 않는 공용 컴포넌트
-  provider/             전역 프로바이더 (QueryClientProvider + Devtools 등)
-  constant/             공용 상수 (라우트 경로, 쿼리 키, 옵션 목록 등)
-  styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css)
+  components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton 등)
+  provider/             전역 프로바이더. CoreProvider 가 아래를 조립
+    MSWProvider.tsx       개발 환경 API 목킹(MSW) 기동
+    QueryProvider.tsx     QueryClientProvider + Devtools + 공통 에러 toast
+  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, browser.ts · server.ts · init.ts)
+  constant/             공용 상수 (token/ 쿠키 옵션, environment/ 환경 변수 래퍼 등)
+  styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css · fonts.ts)
   util/                 순수 헬퍼 함수 (BindClassName 등)
+  proxy.ts              미들웨어. accessToken 만료 시 요청 단계에서 선제적으로 재발급
+  instrumentation.ts    서버 사이드(RSC/Route Handler/Proxy) MSW 목킹 기동
 ```
 
 도메인은 계속 추가된다. 특정 화면에서만 쓰는 코드는 그 라우트 폴더 안(`_component/` 등)에 두고,
@@ -240,30 +256,57 @@ src/
 루트 파일:
 
 ```
-docs/요구사항명세서.md   기능 요구사항 (git 에 커밋된 유일한 문서)
+docs/요구사항명세서.md   기능 요구사항
+docs/에러명세서/          도메인별 에러 응답 명세 (공통 · 로그인 · User)
+docs/publishing-guidelines.md  퍼블리싱(마크업·스타일) 작업 시 아이콘·컬러 규칙
 scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
-next.config.ts          Next 설정 (현재 비어 있음, 기본값)
+next.config.ts          Next 설정. 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
 tsconfig.json           strict 모드, `@/*` → `./src/*` 경로 별칭, bundler 해석
 eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
 .prettierrc.json        Prettier 포맷 규칙
 .prettierignore         Prettier 제외 경로
 .vscode/                에디터 공유 설정 — settings.json(저장 시 포맷) · extensions.json(추천 확장)
 AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
-CLAUDE.md               `@AGENTS.md` 참조 한 줄
+CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
 .gitignore              `.env*` 전체 무시, `next-env.d.ts` · `*.tsbuildinfo` 포함
 ```
 
 ### 의존성
 
-| 구분   | 패키지                                                                                     |
-| ------ | ------------------------------------------------------------------------------------------ |
-| 런타임 | `next` 16.3.3, `react` / `react-dom` 19.2.8                                                |
-| 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools` (설치만, 코드 연결 전)       |
-| 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier` |
+| 구분   | 패키지                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------------------ |
+| 런타임 | `next` 16.3.3, `react` / `react-dom` 19.2.8                                                                |
+| 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools`, `axios`(HTTP client)                        |
+| 폼     | `react-hook-form` + `@hookform/resolvers`, `zod`(스키마 검증)                                              |
+| UI     | `react-icons`(아이콘), `react-toastify`(토스트)                                                            |
+| 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier`, `msw`(API 목킹) |
 
-## 데이터 계층 (예정)
+## 데이터 계층
 
-- 서버 상태는 `provider/` 의 QueryClientProvider 아래에서 TanStack Query 로 관리한다.
-- 원격 호출은 `api/` 의 함수로 모으고, 컴포넌트는 `hooks/` 의 쿼리·뮤테이션 훅만 사용한다.
+- 서버 상태는 `provider/QueryProvider.tsx` 의 `QueryClientProvider` 아래에서 TanStack Query 로 관리한다.
+  기본 `staleTime` 60초, `queries.retry` 3회, `mutations.retry` 0회. mutation 에 개별
+  `onError` 가 없으면 API 에러를 공통으로 toast 노출한다(`react-toastify`).
+- 원격 호출은 `api/` 로 모은다.
+  - `api/ApiClient.ts` — axios 인스턴스. `api/ApiClient.interceptor.ts` 에서 401 응답 시
+    accessToken 자동 재발급 후 재시도한다. `api/ApiClient.error.ts` · `api/ApiErrorRes.ts` 가
+    서버 에러 응답을 공통 포맷으로 파싱한다.
+  - `api/domain/<도메인>/` — 도메인별 액션/쿼리/뮤테이션 및 요청·응답 타입
+    (예: `domain/auth/Auth.action.ts`, `Auth.mutation.ts`, `Auth.session.ts`,
+    `domain/user/User.query.ts`).
+- 인증 토큰(accessToken/refreshToken)은 쿠키로 관리하며, `src/proxy.ts` 가 미들웨어로
+  요청마다 accessToken 부재 + refreshToken 존재 시 선제적으로 재발급한다.
 - 서버에서 초기 데이터를 넘겨주는 dehydrate/HydrationBoundary 패턴은
   `node_modules/next/dist/docs/01-app/02-guides/client-side-data-fetching/tanstack-query.md` 참고.
+
+## API 목킹 (MSW)
+
+- 개발 환경에서는 기본적으로 MSW 로 API 를 목킹한다 (`.env.development` 의
+  `NEXT_PUBLIC_API_MOCKING=enabled`).
+- `src/mocks/handlers/` — 도메인별 핸들러. `src/mocks/browser.ts`(클라이언트) ·
+  `src/mocks/server.ts`(서버) · `src/mocks/init.ts` 가 환경별 워커를 기동한다.
+- 브라우저 목킹은 `provider/MSWProvider.tsx` 에서, 서버(RSC/Route Handler/Proxy) 목킹은
+  `src/instrumentation.ts` 에서 켠다.
+- 실제 백엔드에 붙이려면 `.env.development.local` 에 `NEXT_PUBLIC_API_MOCKING=disabled` 와
+  `NEXT_PUBLIC_API_BASE_URL` 을 넣어 개인적으로 덮어쓴다.
+- Turbopack 번들링과 `msw/node` 의 충돌을 피하기 위해 `next.config.ts` 가 개발 환경에서만
+  `msw` 를 `serverExternalPackages` 로 뺀다.

@@ -6,8 +6,14 @@ import type { LoginRequest } from "@/api/domain/auth/login/request/LoginReq";
 import type { LoginResponse } from "@/api/domain/auth/login/response/LoginRes";
 import type { ReissueRequest } from "@/api/domain/auth/reissue/request/ReissueReq";
 import type { ReissueResponse } from "@/api/domain/auth/reissue/response/ReissueRes";
+import type { SignupRequest } from "@/api/domain/auth/signup/request/SignupReq";
+import type { SignupResponse } from "@/api/domain/auth/signup/response/SignupRes";
 
 const VALID = { email: "mock@test.com", password: "test1234!" };
+
+/** FR-AUTH-02 목킹용 — 이미 사용 중인 것으로 취급할 이메일/닉네임 */
+const TAKEN_EMAIL = "taken@test.com";
+const TAKEN_NICKNAME = "탈출의달인";
 
 export const MOCK_ACCESS_JWT = "eyJhbGciOiJIUzI1NiJ9.fake-access-payload.sig";
 /** getMe 목 핸들러에서 AUTH_TOKEN_EXPIRED를 재현하기 위한 값. accessToken 쿠키에 수동으로 넣어 테스트한다. */
@@ -51,6 +57,29 @@ export const handlers = [
     }
 
     return ok<LoginResponse>(SUCCESS_DATA);
+  }),
+
+  http.post("*/auth/signup", async ({ request }) => {
+    const body = (await request.json()) as SignupRequest;
+    await delay(300);
+
+    if (body.email === TAKEN_EMAIL) {
+      return fail<SignupResponse>({
+        code: "AUTH_EMAIL_DUPLICATE",
+        message: "이미 사용 중인 이메일이에요.",
+        status: 409,
+      });
+    }
+
+    if (body.nickname === TAKEN_NICKNAME) {
+      return fail<SignupResponse>({
+        code: "AUTH_NICKNAME_DUPLICATE",
+        message: "이미 사용 중인 닉네임이에요.",
+        status: 409,
+      });
+    }
+
+    return ok<SignupResponse>({ email: body.email });
   }),
 
   http.post("*/auth/reissue", async ({ request }) => {

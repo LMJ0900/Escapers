@@ -4,6 +4,8 @@ import type { LoginRequest } from "@/api/domain/auth/login/request/LoginReq";
 import type { LoginResponse } from "@/api/domain/auth/login/response/LoginRes";
 import type { ReissueRequest } from "@/api/domain/auth/reissue/request/ReissueReq";
 import type { ReissueResponse } from "@/api/domain/auth/reissue/response/ReissueRes";
+import type { SignupRequest } from "@/api/domain/auth/signup/request/SignupReq";
+import type { SignupResponse } from "@/api/domain/auth/signup/response/SignupRes";
 
 export class AuthMutation {
   static postLogin(req: LoginRequest): Promise<LoginResponse> {
@@ -11,6 +13,15 @@ export class AuthMutation {
       urlPath: "/auth/login",
       method: "POST",
       data: req,
+    });
+  }
+
+  static postSignup(req: SignupRequest): Promise<SignupResponse> {
+    return apiClient<SignupResponse>({
+      urlPath: "/auth/signup",
+      method: "POST",
+      data: req,
+      skipAuthHeader: true,
     });
   }
 

@@ -5,16 +5,23 @@ import { useQuery } from "@tanstack/react-query";
 import { FiSearch, FiUser } from "react-icons/fi";
 
 import { UserQuery } from "@/api/domain/user/User.query";
+import type { getMeResponse } from "@/api/domain/user/getMe/response/getMeRes";
 import { bindClassNames } from "@/util/BindClassName";
 
 import styles from "./HeaderActions.module.css";
 
 const cx = bindClassNames(styles);
 
-export default function HeaderActions() {
+type HeaderActionsProps = {
+  initialMe: getMeResponse | null;
+};
+
+export default function HeaderActions({ initialMe }: HeaderActionsProps) {
   const { data: me } = useQuery({
     queryKey: UserQuery.getMeQueryKey,
     queryFn: () => UserQuery.getMe(),
+    initialData: initialMe ?? undefined,
+    enabled: initialMe !== null,
   });
 
   return (

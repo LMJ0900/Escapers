@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { getOptionalSession } from "@/api/domain/auth/Auth.session";
 import { bindClassNames } from "@/util/BindClassName";
 
 import HeaderActions from "./_components/HeaderActions/HeaderActions";
@@ -13,13 +14,15 @@ type HeaderProps = {
   children?: ReactNode;
 };
 
-export default function Header({ children }: HeaderProps) {
+export default async function Header({ children }: HeaderProps) {
+  const initialMe = await getOptionalSession();
+
   return (
     <>
       <header className={cx("root")}>
         <Logo />
         <HeaderNav />
-        <HeaderActions />
+        <HeaderActions initialMe={initialMe} />
       </header>
 
       {children}

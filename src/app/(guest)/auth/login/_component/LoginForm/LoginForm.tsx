@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 
 import type { ApiErrorResponse } from "@/api/ApiErrorRes";
 import { setAuthToken } from "@/api/domain/auth/Auth.action";
-import { AuthMutation } from "@/api/domain/auth/login/Auth.mutation";
+import { AuthMutation } from "@/api/domain/auth/Auth.mutation";
 import {
   loginRequestSchema,
   type LoginRequest,

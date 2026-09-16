@@ -24,7 +24,6 @@ export default function LoginPage() {
         <LoginForm />
       </section>
 
-      {/* TODO: 회원가입 라우트가 정해지면 href 교체 */}
       <p className={cx("signup")}>
         아직 회원이 아니신가요?{" "}
         <Link href="/signup" className={cx("signupLink")}>

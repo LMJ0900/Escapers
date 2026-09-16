@@ -1,0 +1,125 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ================= 약관 동의 ================= */
+.agree {
+  border: 1px solid var(--color-border-subtle);
+}
+
+.agreeMaster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.agreeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.agree .agreeRow:last-child {
+  border-bottom: none;
+}
+
+.agreeText {
+  flex-grow: 1;
+}
+
+.required {
+  color: var(--color-brand-text);
+}
+
+.optional {
+  color: var(--color-text-subtle);
+}
+
+.agreeView {
+  font-size: 11px;
+  color: var(--color-text-subtle);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.agreeView:hover {
+  color: var(--color-text-muted);
+}
+
+.checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--color-brand);
+  flex-shrink: 0;
+}
+
+/* ================= 사장님 안내 ================= */
+.notice {
+  margin: 0;
+  padding: 13px 14px;
+  background: var(--color-brand-subtle);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--color-brand-text);
+  line-height: 1.6;
+}
+
+/* ================= 에러 ================= */
+.error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-danger);
+}
+
+/* ================= 가입 완료 ================= */
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  text-align: center;
+}
+
+.doneTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.doneDesc {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.doneLink {
+  font-size: 12px;
+  color: var(--color-link);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.doneLink:hover {
+  color: var(--color-link-hover);
+}

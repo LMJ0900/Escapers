@@ -11,6 +11,8 @@ type InputBoxProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   /** 에러 메시지. 값이 있으면 에러 스타일 + 메시지를 렌더한다. */
   error?: string;
+  /** 보조 설명 텍스트. 에러가 없을 때만 노출된다. */
+  help?: string;
   /** react-hook-form register 의 ref 등을 전달받기 위한 프로퍼티 (React 19 ref-as-prop) */
   ref?: Ref<HTMLInputElement>;
 };
@@ -19,11 +21,13 @@ export default function InputBox({
   id,
   label,
   error,
+  help,
   className,
   ref,
   ...rest
 }: InputBoxProps) {
   const errorId = error && id ? `${id}-error` : undefined;
+  const helpId = help && !error && id ? `${id}-help` : undefined;
 
   return (
     <div className={cx("root")}>
@@ -36,13 +40,17 @@ export default function InputBox({
         ref={ref}
         className={cx("input", { inputError: Boolean(error) }, className)}
         aria-invalid={error ? true : undefined}
-        aria-describedby={errorId}
+        aria-describedby={errorId ?? helpId}
         {...rest}
       />
 
       {error ? (
         <p id={errorId} className={cx("error")} role="alert">
           {error}
+        </p>
+      ) : help ? (
+        <p id={helpId} className={cx("help")}>
+          {help}
         </p>
       ) : null}
     </div>

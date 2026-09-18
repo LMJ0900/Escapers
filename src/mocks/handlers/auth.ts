@@ -106,4 +106,12 @@ export const handlers = [
 
     return ok<ReissueResponse>({ accessJwt: issueAccessToken(account.email) });
   }),
+
+  http.post("*/auth/logout", async ({ request }) => {
+    if (request.headers.has("Next-Action")) return passthrough();
+
+    await delay(300);
+
+    return ok<null>(null);
+  }),
 ];

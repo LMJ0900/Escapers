@@ -22,7 +22,7 @@ export default function SignupPage() {
       </div>
 
       <div className={cx("cards")}>
-        <Link href="/signup/member" className={cx("card")}>
+        <Link href="/auth/signup/member" className={cx("card")}>
           <HiOutlineTicket size={30} aria-hidden />
           <span className={cx("cardTitle")}>일반 회원</span>
           <span className={cx("cardDesc")}>
@@ -31,7 +31,7 @@ export default function SignupPage() {
           <span className={cx("cardCta")}>회원으로 가입 →</span>
         </Link>
 
-        <Link href="/signup/owner" className={cx("card")}>
+        <Link href="/auth/signup/owner" className={cx("card")}>
           <HiOutlineBuildingStorefront size={30} aria-hidden />
           <span className={cx("cardTitle")}>테마 사장님</span>
           <span className={cx("cardDesc")}>

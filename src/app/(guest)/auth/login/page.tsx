@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       <p className={cx("signup")}>
         아직 회원이 아니신가요?{" "}
-        <Link href="/signup" className={cx("signupLink")}>
+        <Link href="/auth/signup" className={cx("signupLink")}>
           회원가입
         </Link>
       </p>

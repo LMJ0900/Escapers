@@ -9,22 +9,22 @@ import styles from "./page.module.css";
 const cx = bindClassNames(styles);
 
 export const metadata: Metadata = {
-  title: "일반 회원가입 · Escapers",
+  title: "사장님 회원가입 · Escapers",
 };
 
-export default function MemberSignupPage() {
+export default function OwnerSignupPage() {
   return (
     <main className={cx("root")}>
       <section className={cx("panel")}>
         <div className={cx("heading")}>
-          <span className={cx("eyebrow")}>Members</span>
-          <h1 className={cx("title")}>회원가입</h1>
+          <span className={cx("eyebrow")}>Partners</span>
+          <h1 className={cx("title")}>사장님으로 가입</h1>
           <p className={cx("description")}>
-            예약과 기록을 관리할 계정을 만들어요
+            테마 등록과 예약 관리를 위한 사장님 전용 계정이에요
           </p>
         </div>
 
-        <SignupForm role="MEMBER" />
+        <SignupForm role="OWNER" />
       </section>
 
       <div className={cx("links")}>
@@ -35,9 +35,9 @@ export default function MemberSignupPage() {
           </Link>
         </p>
         <p className={cx("link")}>
-          사장님이신가요?{" "}
-          <Link href="/signup/owner" className={cx("linkAnchor")}>
-            사장님으로 가입
+          일반 회원이신가요?{" "}
+          <Link href="/auth/signup/member" className={cx("linkAnchor")}>
+            일반 회원으로 가입
           </Link>
         </p>
       </div>

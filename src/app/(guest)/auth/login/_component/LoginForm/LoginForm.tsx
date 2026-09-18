@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -20,11 +20,13 @@ import { bindClassNames } from "@/util/BindClassName";
 
 import SocialLoginForm from "../SocialLoginForm/SocialLoginForm";
 import styles from "./LoginForm.module.css";
+import { UserQuery } from "@/api/domain/user/User.query";
 
 const cx = bindClassNames(styles);
 
 export default function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -50,6 +52,9 @@ export default function LoginForm() {
       await setAuthToken({
         accessToken: res.accessJwt,
         refreshToken: res.refreshJwt,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: UserQuery.getMeQueryKey,
       });
       router.push("/");
     },

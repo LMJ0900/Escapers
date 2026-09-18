@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { clearAuthToken } from "@/api/domain/auth/Auth.action";
+import { useQueryClient } from "@tanstack/react-query";
+import { UserQuery } from "@/api/domain/user/User.query";
 
 const REASON_MESSAGE: Record<string, string> = {
   suspended: "이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.",
@@ -27,6 +29,7 @@ type LogoutHandlerProps = {
 export default function LogoutHandler({ reason }: LogoutHandlerProps) {
   const router = useRouter();
   const ranRef = useRef(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (ranRef.current) return;
@@ -34,7 +37,7 @@ export default function LogoutHandler({ reason }: LogoutHandlerProps) {
 
     (async () => {
       await clearAuthToken();
-
+      queryClient.setQueryData(UserQuery.getMeQueryKey, null);
       const message = reason ? REASON_MESSAGE[reason] : undefined;
       if (message) toast.error(message);
 

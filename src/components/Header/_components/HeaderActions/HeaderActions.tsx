@@ -21,7 +21,6 @@ export default function HeaderActions({ initialMe }: HeaderActionsProps) {
     queryKey: UserQuery.getMeQueryKey,
     queryFn: () => UserQuery.getMe(),
     initialData: initialMe ?? undefined,
-    enabled: initialMe !== null,
   });
 
   return (

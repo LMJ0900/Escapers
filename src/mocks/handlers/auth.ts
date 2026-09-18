@@ -9,22 +9,12 @@ import type { ReissueResponse } from "@/api/domain/auth/reissue/response/Reissue
 import type { SignupRequest } from "@/api/domain/auth/signup/request/SignupReq";
 import type { SignupResponse } from "@/api/domain/auth/signup/response/SignupRes";
 
-const VALID = { email: "mock@test.com", password: "test1234!" };
+import { accountStore } from "@/mocks/state/accountStore";
+import { getEmailFromToken, issueAccessToken, issueRefreshToken } from "@/mocks/state/token";
 
-/** FR-AUTH-02 목킹용 — 이미 사용 중인 것으로 취급할 이메일/닉네임 */
-const TAKEN_EMAIL = "taken@test.com";
-const TAKEN_NICKNAME = "탈출의달인";
-
-export const MOCK_ACCESS_JWT = "eyJhbGciOiJIUzI1NiJ9.fake-access-payload.sig";
 /** getMe 목 핸들러에서 AUTH_TOKEN_EXPIRED를 재현하기 위한 값. accessToken 쿠키에 수동으로 넣어 테스트한다. */
 export const MOCK_EXPIRED_ACCESS_JWT =
   "eyJhbGciOiJIUzI1NiJ9.fake-expired-access-payload.sig";
-const MOCK_REFRESH_JWT = "eyJhbGciOiJIUzI1NiJ9.fake-refresh-payload.sig";
-
-const SUCCESS_DATA: LoginResponse = {
-  accessJwt: MOCK_ACCESS_JWT,
-  refreshJwt: MOCK_REFRESH_JWT,
-};
 
 const ok = <TData>(data: TData) =>
   HttpResponse.json<ApiResponse<TData>>(
@@ -48,7 +38,9 @@ export const handlers = [
     const body = (await request.json()) as LoginRequest;
     await delay(300);
 
-    if (body.email !== VALID.email || body.password !== VALID.password) {
+    const account = accountStore.findByEmail(body.email);
+
+    if (!account || account.password !== body.password) {
       return fail<LoginResponse>({
         code: "AUTH_INVALID_CREDENTIALS",
         message: "이메일 또는 비밀번호가 올바르지 않습니다.",
@@ -56,14 +48,17 @@ export const handlers = [
       });
     }
 
-    return ok<LoginResponse>(SUCCESS_DATA);
+    return ok<LoginResponse>({
+      accessJwt: issueAccessToken(account.email),
+      refreshJwt: issueRefreshToken(account.email),
+    });
   }),
 
   http.post("*/auth/signup", async ({ request }) => {
     const body = (await request.json()) as SignupRequest;
     await delay(300);
 
-    if (body.email === TAKEN_EMAIL) {
+    if (accountStore.findByEmail(body.email)) {
       return fail<SignupResponse>({
         code: "AUTH_EMAIL_DUPLICATE",
         message: "이미 사용 중인 이메일이에요.",
@@ -71,13 +66,21 @@ export const handlers = [
       });
     }
 
-    if (body.nickname === TAKEN_NICKNAME) {
+    if (accountStore.existsByNickname(body.nickname)) {
       return fail<SignupResponse>({
         code: "AUTH_NICKNAME_DUPLICATE",
         message: "이미 사용 중인 닉네임이에요.",
         status: 409,
       });
     }
+
+    accountStore.add({
+      id: `mock-${crypto.randomUUID()}`,
+      email: body.email,
+      password: body.password,
+      nickname: body.nickname,
+      role: body.role,
+    });
 
     return ok<SignupResponse>({ email: body.email });
   }),
@@ -90,7 +93,10 @@ export const handlers = [
     const body = (await request.json()) as ReissueRequest;
     await delay(300);
 
-    if (body.refreshJwt !== MOCK_REFRESH_JWT) {
+    const email = getEmailFromToken(body.refreshJwt);
+    const account = email ? accountStore.findByEmail(email) : undefined;
+
+    if (!account) {
       return fail<ReissueResponse>({
         code: "AUTH_TOKEN_INVALID",
         message: "유효하지 않은 인증 토큰입니다.",
@@ -98,6 +104,6 @@ export const handlers = [
       });
     }
 
-    return ok<ReissueResponse>({ accessJwt: MOCK_ACCESS_JWT });
+    return ok<ReissueResponse>({ accessJwt: issueAccessToken(account.email) });
   }),
 ];

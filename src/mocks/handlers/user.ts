@@ -5,14 +5,9 @@ import type { ApiResponse } from "@/api/ApiRes";
 import type { getMeResponse } from "@/api/domain/user/getMe/response/getMeRes";
 import type { UserAuthErrorCode } from "@/api/domain/user/User.error";
 
-import { MOCK_ACCESS_JWT, MOCK_EXPIRED_ACCESS_JWT } from "@/mocks/handlers/auth";
-
-const MOCK_ME: getMeResponse = {
-  id: "mock-user-1",
-  role: "MEMBER",
-  email: "mock@test.com",
-  nickname: "테스트유저",
-};
+import { MOCK_EXPIRED_ACCESS_JWT } from "@/mocks/handlers/auth";
+import { accountStore } from "@/mocks/state/accountStore";
+import { getEmailFromToken } from "@/mocks/state/token";
 
 const ok = (data: getMeResponse) =>
   HttpResponse.json<ApiResponse<getMeResponse>>(
@@ -51,7 +46,10 @@ export const handlers = [
       });
     }
 
-    if (token !== MOCK_ACCESS_JWT) {
+    const email = getEmailFromToken(token);
+    const account = email ? accountStore.findByEmail(email) : undefined;
+
+    if (!account) {
       return fail({
         code: "AUTH_TOKEN_INVALID",
         message: "유효하지 않은 인증 토큰입니다.",
@@ -59,6 +57,11 @@ export const handlers = [
       });
     }
 
-    return ok(MOCK_ME);
+    return ok({
+      id: account.id,
+      role: account.role,
+      email: account.email,
+      nickname: account.nickname,
+    });
   }),
 ];

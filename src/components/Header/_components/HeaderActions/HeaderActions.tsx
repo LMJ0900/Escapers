@@ -31,10 +31,9 @@ export default function HeaderActions({ initialMe }: HeaderActionsProps) {
       </button>
 
       {me ? (
-        // TODO: 마이페이지 라우트 연결
-        <button type="button" className={cx("iconButton")} aria-label="내 정보">
+        <Link href="/mypage" className={cx("iconButton")} aria-label="내 정보">
           <FiUser size={18} aria-hidden />
-        </button>
+        </Link>
       ) : (
         <Link href="/auth/login" className={cx("login")}>
           로그인

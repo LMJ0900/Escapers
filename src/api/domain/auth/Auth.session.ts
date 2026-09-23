@@ -39,6 +39,12 @@ export const getOptionalSession = cache(
 );
 
 export const verifySession = cache(async (): Promise<getMeResponse> => {
+  const refreshToken = await getServerRefreshToken();
+
+  if (refreshToken === null) {
+    redirect("/auth/login?reason=required");
+  }
+
   try {
     return await UserQuery.getMe();
   } catch (err) {

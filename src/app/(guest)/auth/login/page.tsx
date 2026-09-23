@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { bindClassNames } from "@/util/BindClassName";
 
 import LoginForm from "./_component/LoginForm/LoginForm";
+import LoginReasonToast from "./_component/LoginReasonToast/LoginReasonToast";
 import styles from "./page.module.css";
 
 const cx = bindClassNames(styles);
@@ -12,7 +13,11 @@ export const metadata: Metadata = {
   title: "로그인 · Escapers",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: PageProps<"/auth/login">) {
+  const { reason } = await searchParams;
+
   return (
     <main className={cx("root")}>
       <section className={cx("panel")}>
@@ -30,6 +35,10 @@ export default function LoginPage() {
           회원가입
         </Link>
       </p>
+
+      <LoginReasonToast
+        reason={typeof reason === "string" ? reason : undefined}
+      />
     </main>
   );
 }

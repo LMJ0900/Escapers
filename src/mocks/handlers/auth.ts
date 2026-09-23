@@ -9,8 +9,13 @@ import type { ReissueResponse } from "@/api/domain/auth/reissue/response/Reissue
 import type { SignupRequest } from "@/api/domain/auth/signup/request/SignupReq";
 import type { SignupResponse } from "@/api/domain/auth/signup/response/SignupRes";
 
+import { AUTH_REASON_MESSAGE } from "@/api/constant/Reason";
 import { accountStore } from "@/mocks/state/accountStore";
-import { getEmailFromToken, issueAccessToken, issueRefreshToken } from "@/mocks/state/token";
+import {
+  getEmailFromToken,
+  issueAccessToken,
+  issueRefreshToken,
+} from "@/mocks/state/token";
 
 /** getMe 목 핸들러에서 AUTH_TOKEN_EXPIRED를 재현하기 위한 값. accessToken 쿠키에 수동으로 넣어 테스트한다. */
 export const MOCK_EXPIRED_ACCESS_JWT =
@@ -48,6 +53,22 @@ export const handlers = [
       });
     }
 
+    if (account.status === "SUSPENDED") {
+      return fail<LoginResponse>({
+        code: "AUTH_ACCOUNT_SUSPENDED",
+        message: AUTH_REASON_MESSAGE.suspended,
+        status: 403,
+      });
+    }
+
+    if (account.status === "WITHDRAWN") {
+      return fail<LoginResponse>({
+        code: "AUTH_ACCOUNT_WITHDRAWN",
+        message: AUTH_REASON_MESSAGE.withdrawn,
+        status: 403,
+      });
+    }
+
     return ok<LoginResponse>({
       accessJwt: issueAccessToken(account.email),
       refreshJwt: issueRefreshToken(account.email),
@@ -80,6 +101,8 @@ export const handlers = [
       password: body.password,
       nickname: body.nickname,
       role: body.role,
+      marketingAgree: body.marketingAgree,
+      status: "ACTIVE",
     });
 
     return ok<SignupResponse>({ email: body.email });

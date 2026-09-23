@@ -8,3 +8,19 @@ export type UserAuthErrorCode =
   | "AUTH_ACCOUNT_WITHDRAWN";
 
 export type UserAuthErrorResponse = ApiErrorResponse<UserAuthErrorCode>;
+
+export type UpdateNicknameErrorCode =
+  UserAuthErrorCode | "USER_NICKNAME_DUPLICATE";
+
+export type UpdateNicknameErrorResponse =
+  ApiErrorResponse<UpdateNicknameErrorCode>;
+
+export type UpdateEmailErrorCode = UserAuthErrorCode | "USER_EMAIL_DUPLICATE";
+
+export type UpdateEmailErrorResponse = ApiErrorResponse<UpdateEmailErrorCode>;
+
+export type UpdatePasswordErrorCode =
+  UserAuthErrorCode | "USER_CURRENT_PASSWORD_MISMATCH";
+
+export type UpdatePasswordErrorResponse =
+  ApiErrorResponse<UpdatePasswordErrorCode>;

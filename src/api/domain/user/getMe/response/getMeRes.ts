@@ -2,7 +2,8 @@ export type UserRole = "ADMIN" | "MEMBER" | "OWNER";
 
 export interface getMeResponse {
   id: string;
-  role : UserRole;
+  role: UserRole;
   email: string;
   nickname: string;
+  marketingAgree: boolean;
 }

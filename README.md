@@ -225,8 +225,10 @@ docs/18-branch-guide   ─┘                         ▲
 src/
   app/                  App Router. 라우팅 + 페이지 (되도록 얇게 유지)
     (guest)/            비로그인 전용 라우트 그룹. 로그인 상태로 진입 시 `/` 로 redirect (URL 미노출)
-      auth/login/        로그인 페이지 (`LoginForm`, `SocialLoginForm`)
+      auth/login/        로그인 페이지 (`LoginForm`, `SocialLoginForm`, `LoginReasonToast` — 강제 로그아웃 사유 토스트)
+      auth/signup/        가입 방식 선택 페이지 + `member/` · `owner/` 역할별 가입 페이지
     (protected)/        로그인 필수 라우트 그룹. 비로그인 진입 시 `/auth/login` 으로 redirect (URL 미노출)
+      mypage/             마이페이지. `_component/`(AccountInfo, MypageSidebar) + `reservations/`(예약 내역, WIP)
     auth/logout/         로그아웃 처리 라우트 (`LogoutHandler`)
     <domain>/           도메인별 라우트 세그먼트 (테마 · 후기 등 추가 예정)
       _component/        해당 라우트 전용 컴포넌트 (밑줄 = 라우팅에서 제외되는 폴더)
@@ -236,13 +238,14 @@ src/
   api/                  원격 호출 레이어
     ApiClient.ts         axios 인스턴스. ApiClient.interceptor.ts 에서 401 시 accessToken 자동 재발급
     ApiClient.error.ts · ApiErrorRes.ts · ApiRes.ts   공통 에러/응답 타입 파싱
-    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user)
+    constant/             공용 요청 스키마(zod, `AccountField.schema.ts`) · 강제 로그아웃 사유 메시지(`Reason.ts`)
+    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user · reservation(WIP))
   hooks/                공용 커스텀 훅 (쿼리 · 뮤테이션 훅, UI 훅 등)
   components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton 등)
   provider/             전역 프로바이더. CoreProvider 가 아래를 조립
     MSWProvider.tsx       개발 환경 API 목킹(MSW) 기동
     QueryProvider.tsx     QueryClientProvider + Devtools + 공통 에러 toast
-  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, browser.ts · server.ts · init.ts)
+  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/accountStore.ts — 가입 계정을 반영하는 목 계정 저장소, browser.ts · server.ts · init.ts)
   constant/             공용 상수 (token/ 쿠키 옵션, environment/ 환경 변수 래퍼 등)
   styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css · fonts.ts)
   util/                 순수 헬퍼 함수 (BindClassName 등)
@@ -292,9 +295,14 @@ CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
     서버 에러 응답을 공통 포맷으로 파싱한다.
   - `api/domain/<도메인>/` — 도메인별 액션/쿼리/뮤테이션 및 요청·응답 타입
     (예: `domain/auth/Auth.action.ts`, `Auth.mutation.ts`, `Auth.session.ts`,
-    `domain/user/User.query.ts`).
+    `domain/user/User.query.ts`, `User.mutation.ts`(닉네임·이메일·비밀번호·마케팅동의 수정, 회원 탈퇴),
+    `domain/reservation/Reservation.query.ts`(WIP)).
 - 인증 토큰(accessToken/refreshToken)은 쿠키로 관리하며, `src/proxy.ts` 가 미들웨어로
   요청마다 accessToken 부재 + refreshToken 존재 시 선제적으로 재발급한다.
+- `Auth.session.ts` 가 서버 컴포넌트용 세션 조회를 제공한다.
+  - `getOptionalSession` — 헤더처럼 항상 렌더되는 컴포넌트용. 실패해도 비로그인으로 조용히 처리.
+  - `verifySession` — `(protected)` 라우트용. 미로그인/정지/탈퇴 시 `/auth/login` 또는
+    `/auth/logout` 으로 redirect.
 - 서버에서 초기 데이터를 넘겨주는 dehydrate/HydrationBoundary 패턴은
   `node_modules/next/dist/docs/01-app/02-guides/client-side-data-fetching/tanstack-query.md` 참고.
 

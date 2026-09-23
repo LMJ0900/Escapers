@@ -5,14 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 import { clearAuthToken } from "@/api/domain/auth/Auth.action";
+import { AUTH_REASON_MESSAGE } from "@/api/constant/Reason";
 import { useQueryClient } from "@tanstack/react-query";
 import { UserQuery } from "@/api/domain/user/User.query";
-
-const REASON_MESSAGE: Record<string, string> = {
-  suspended: "이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.",
-  withdrawn: "탈퇴한 계정입니다.",
-  expired: "다시 로그인해주세요.",
-};
 
 type LogoutHandlerProps = {
   reason?: string;
@@ -38,7 +33,7 @@ export default function LogoutHandler({ reason }: LogoutHandlerProps) {
     (async () => {
       await clearAuthToken();
       queryClient.setQueryData(UserQuery.getMeQueryKey, null);
-      const message = reason ? REASON_MESSAGE[reason] : undefined;
+      const message = reason ? AUTH_REASON_MESSAGE[reason] : undefined;
       if (message) toast.error(message);
 
       router.replace("/auth/login");

@@ -13,31 +13,41 @@ import {
 } from "react-icons/fi";
 
 import { ThemeMutation } from "@/api/domain/theme/Theme.mutation";
-import { ThemeQuery } from "@/api/domain/theme/Theme.query";
-import type { getHotThemesResponse } from "@/api/domain/theme/getHotThemes/response/getHotThemesRes";
+import { ThemeQuery, type ThemeListType } from "@/api/domain/theme/Theme.query";
 import type { PutThemeLikeErrorResponse } from "@/api/domain/theme/Theme.error";
+import type { ThemeSummary } from "@/api/domain/theme/Theme.type";
 import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
 import { bindClassNames } from "@/util/BindClassName";
 
-import styles from "./HotThemes.module.css";
+import styles from "./ThemeCarousel.module.css";
 
 const cx = bindClassNames(styles);
 
 const PAGE_SIZE = 5;
 
-type HotThemesProps = {
-  initialHotThemes: getHotThemesResponse;
+type ThemeCarouselProps = {
+  /** 제목 위에 작게 표시되는 영문 문구 */
+  eyebrow: string;
+  title: string;
+  listType: ThemeListType;
+  initialThemes: ThemeSummary[];
 };
 
-export default function HotThemes({ initialHotThemes }: HotThemesProps) {
+export default function ThemeCarousel({
+  eyebrow,
+  title,
+  listType,
+  initialThemes,
+}: ThemeCarouselProps) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [pendingLikeId, setPendingLikeId] = useState<string | null>(null);
 
+  const { queryKey, queryFn } = ThemeQuery.themeLists[listType];
   const { data: themes } = useQuery({
-    queryKey: ThemeQuery.getHotThemesQueryKey,
-    queryFn: () => ThemeQuery.getHotThemes(),
-    initialData: initialHotThemes,
+    queryKey,
+    queryFn: () => queryFn(),
+    initialData: initialThemes,
   });
 
   const pageCount = Math.max(1, Math.ceil(themes.length / PAGE_SIZE));
@@ -52,8 +62,9 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
   >({
     mutationFn: ThemeMutation.putLike,
     onSuccess: (_, variables) => {
-      queryClient.setQueryData<getHotThemesResponse>(
-        ThemeQuery.getHotThemesQueryKey,
+      // 같은 테마가 여러 목록(핫한 테마, 장르별 테마 등)에 동시에 있을 수 있어 모든 테마 목록 캐시를 갱신한다.
+      queryClient.setQueriesData<ThemeSummary[]>(
+        { queryKey: ThemeQuery.themeListQueryKey },
         (prev) =>
           prev?.map((theme) =>
             theme.id === variables.themeId
@@ -72,7 +83,7 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
     onSettled: () => setPendingLikeId(null),
   });
 
-  const handleToggleLike = (theme: getHotThemesResponse[number]) => {
+  const handleToggleLike = (theme: ThemeSummary) => {
     setPendingLikeId(theme.id);
     toggleLike({ themeId: theme.id, liked: !theme.liked });
   };
@@ -81,8 +92,8 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
     <section className={cx("section")}>
       <div className={cx("headerRow")}>
         <div className={cx("headingGroup")}>
-          <span className={cx("eyebrow")}>Hot Right Now</span>
-          <h2 className={cx("title")}>요즘 핫한 테마</h2>
+          <span className={cx("eyebrow")}>{eyebrow}</span>
+          <h2 className={cx("title")}>{title}</h2>
         </div>
         {/* TODO: 테마 목록 페이지가 구현되면 실제 라우트로 연결 */}
         <Link href="/themes" className={cx("moreLink")}>
@@ -97,7 +108,7 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
             <button
               type="button"
               className={cx("arrowBtn")}
-              aria-label="이전 5개 테마 보기"
+              aria-label={`이전 ${PAGE_SIZE}개 테마 보기`}
               onClick={goPrev}
             >
               <FiChevronLeft aria-hidden />
@@ -168,7 +179,7 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
             <button
               type="button"
               className={cx("arrowBtn")}
-              aria-label="다음 5개 테마 보기"
+              aria-label={`다음 ${PAGE_SIZE}개 테마 보기`}
               onClick={goNext}
             >
               <FiChevronRight aria-hidden />

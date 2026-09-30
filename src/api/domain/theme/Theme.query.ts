@@ -1,5 +1,6 @@
 import apiClient from "@/api/ApiClient";
 
+import type { getActiveThemesResponse } from "@/api/domain/theme/getActiveThemes/response/getActiveThemesRes";
 import type { getHorrorThemesResponse } from "@/api/domain/theme/getHorrorThemes/response/getHorrorThemesRes";
 import type { getHotThemesResponse } from "@/api/domain/theme/getHotThemes/response/getHotThemesRes";
 
@@ -17,6 +18,10 @@ export class ThemeQuery {
     ...ThemeQuery.themeListQueryKey,
     "horror",
   ] as const;
+  static readonly getActiveThemesQueryKey = [
+    ...ThemeQuery.themeListQueryKey,
+    "active",
+  ] as const;
 
   static getHotThemes(): Promise<getHotThemesResponse> {
     return apiClient<getHotThemesResponse>({
@@ -28,6 +33,13 @@ export class ThemeQuery {
   static getHorrorThemes(): Promise<getHorrorThemesResponse> {
     return apiClient<getHorrorThemesResponse>({
       urlPath: "/theme/horror",
+      method: "GET",
+    });
+  }
+
+  static getActiveThemes(): Promise<getActiveThemesResponse> {
+    return apiClient<getActiveThemesResponse>({
+      urlPath: "/theme/active",
       method: "GET",
     });
   }
@@ -44,6 +56,10 @@ export class ThemeQuery {
     horror: {
       queryKey: ThemeQuery.getHorrorThemesQueryKey,
       queryFn: ThemeQuery.getHorrorThemes,
+    },
+    active: {
+      queryKey: ThemeQuery.getActiveThemesQueryKey,
+      queryFn: ThemeQuery.getActiveThemes,
     },
   } as const;
 }

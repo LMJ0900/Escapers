@@ -9,9 +9,9 @@ const cx = bindClassNames(styles);
 // TODO: 실제 라우트가 정해지면 href 교체
 const NAV_ITEMS = [
   { label: "테마", href: "/themes" },
-  { label: "이용안내", href: "/guide" },
-  { label: "지점", href: "/branches" },
-  { label: "리뷰", href: "/reviews" },
+  { label: "동행모임", href: "/meetups" },
+  { label: "찜한테마", href: "/likes" },
+  { label: "커뮤니티", href: "/community" },
 ];
 
 export default function HeaderNav() {

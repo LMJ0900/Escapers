@@ -1,0 +1,304 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 48px 64px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.headingGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.moreLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.moreLink:hover {
+  color: var(--color-brand);
+}
+
+.carousel {
+  position: relative;
+  padding: 0 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 데스크톱 전용: 현재 페이지가 아닌 카드는 숨긴다. 모바일 미디어쿼리에서 다시 보이게 한다. */
+.cardOffPage {
+  display: none;
+}
+
+.thumbLink {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.thumbScrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-overlay) 55%, transparent) 100%
+  );
+}
+
+.rank {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 28px;
+  color: var(--color-text-inverse);
+}
+
+.hoverHint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-overlay) 28%, transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.thumbLink:hover .hoverHint,
+.thumbLink:focus-visible .hoverHint {
+  opacity: 1;
+}
+
+.hoverHintLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--color-text-inverse);
+}
+
+.themeName {
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.branch {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+}
+
+.heart {
+  padding: 4px;
+  margin: -4px;
+  border: none;
+  background: none;
+  color: var(--color-text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.heart:hover {
+  color: var(--color-text-muted);
+}
+
+.heart:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.heart.heartLiked {
+  color: var(--color-brand);
+}
+
+.edgeZone {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.edgeZone:hover,
+.edgeZone:focus-within {
+  opacity: 1;
+}
+
+.edgeLeft {
+  left: -16px;
+  justify-content: flex-start;
+}
+
+.edgeRight {
+  right: -16px;
+  justify-content: flex-end;
+}
+
+.arrowBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.arrowBtn:hover {
+  border-color: var(--color-text);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-border);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+
+/* 6px 점은 누르기 어려워서, 보이는 크기는 그대로 두고 누르는 영역만 넓힘 */
+.dot::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.dot:hover {
+  background: var(--color-text-muted);
+}
+
+.dot.dotOn {
+  background: var(--color-text);
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 32px 24px;
+  }
+
+  .carousel {
+    padding: 0;
+  }
+
+  .edgeZone,
+  .dots {
+    display: none;
+  }
+
+  .row {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    margin: 0 -24px;
+    padding: 0 24px;
+  }
+
+  .row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .card {
+    flex: 0 0 152px;
+    scroll-snap-align: start;
+  }
+
+  /* 모바일은 화살표 대신 가로 스크롤로 전체를 보여준다. */
+  .cardOffPage {
+    display: flex;
+  }
+}

@@ -180,10 +180,13 @@ export default function HotThemes({ initialHotThemes }: HotThemesProps) {
       {pageCount > 1 && (
         <div className={cx("dots")}>
           {Array.from({ length: pageCount }).map((_, i) => (
-            <span
+            <button
               key={i}
+              type="button"
               className={cx("dot", { dotOn: i === page })}
-              aria-hidden
+              aria-label={`${i * PAGE_SIZE + 1}~${Math.min((i + 1) * PAGE_SIZE, themes.length)}위 테마 보기`}
+              aria-current={i === page ? "true" : undefined}
+              onClick={() => setPage(i)}
             />
           ))}
         </div>

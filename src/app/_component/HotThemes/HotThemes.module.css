@@ -235,12 +235,33 @@
 .dot {
   width: 6px;
   height: 6px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   background: var(--color-border);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+
+/* 6px 점은 누르기 어려워서, 보이는 크기는 그대로 두고 누르는 영역만 넓힘 */
+.dot::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.dot:hover {
+  background: var(--color-text-muted);
 }
 
 .dot.dotOn {
   background: var(--color-text);
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
 }
 
 @media (max-width: 768px) {

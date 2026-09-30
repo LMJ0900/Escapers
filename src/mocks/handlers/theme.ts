@@ -53,6 +53,19 @@ const MOCK_HORROR_THEMES: MockThemeSummary[] = [
   { id: "horror-10", rank: 10, name: "그녀의 일기장", branchName: "잠실점" },
 ];
 
+const MOCK_ACTIVE_THEMES: MockThemeSummary[] = [
+  { id: "theme-8", rank: 1, name: "시간의 문", branchName: "신촌점" },
+  { id: "horror-9", rank: 2, name: "끝나지 않는 복도", branchName: "강남점" },
+  { id: "active-3", rank: 3, name: "레이저 금고", branchName: "홍대점" },
+  { id: "active-4", rank: 4, name: "탈옥", branchName: "잠실점" },
+  { id: "active-5", rank: 5, name: "정글 탐험대", branchName: "강남점" },
+  { id: "active-6", rank: 6, name: "잠수함 탈출", branchName: "신촌점" },
+  { id: "active-7", rank: 7, name: "밀실 추격전", branchName: "홍대점" },
+  { id: "active-8", rank: 8, name: "무너지는 탑", branchName: "잠실점" },
+  { id: "active-9", rank: 9, name: "닌자의 수련장", branchName: "강남점" },
+  { id: "active-10", rank: 10, name: "폭주 기관차", branchName: "신촌점" },
+];
+
 /** Authorization 헤더가 있으면 계정을 찾아 반환하고, 없거나 유효하지 않으면 null(비로그인 취급). */
 function findAccountFromRequest(request: Request) {
   const authHeader = request.headers.get("Authorization");
@@ -132,6 +145,7 @@ function themeListHandler(path: string, themes: MockThemeSummary[]) {
 export const handlers = [
   themeListHandler("*/theme/hot", MOCK_HOT_THEMES),
   themeListHandler("*/theme/horror", MOCK_HORROR_THEMES),
+  themeListHandler("*/theme/active", MOCK_ACTIVE_THEMES),
 
   http.put("*/theme/:id/like", async ({ request, params }) => {
     const body = (await request.json()) as { liked: boolean };

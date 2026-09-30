@@ -1,3 +1,3 @@
 import type { ThemeSummary } from "@/api/domain/theme/Theme.type";
 
-export type getHotThemesResponse = ThemeSummary[];
+export type getHorrorThemesResponse = ThemeSummary[];

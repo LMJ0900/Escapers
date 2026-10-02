@@ -1,0 +1,25 @@
+.heart {
+  padding: 4px;
+  margin: -4px;
+  border: none;
+  background: none;
+  color: var(--color-text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.heart:hover {
+  color: var(--color-text-muted);
+}
+
+.heart:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.heartLiked {
+  color: var(--color-brand);
+}

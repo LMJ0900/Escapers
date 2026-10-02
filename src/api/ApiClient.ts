@@ -19,6 +19,7 @@ interface ApiClientProps {
   urlPath: string;
   method: "GET" | "POST" | "DELETE" | "PATCH" | "PUT";
   data?: unknown;
+  params?: Record<string, string | number | undefined>;
   skipAuthHeader?: boolean;
 }
 
@@ -36,6 +37,7 @@ const apiClient = async <SuccessData = unknown>(
     url: props.urlPath,
     method: props.method,
     ...(props.data !== undefined && { data: props.data }),
+    ...(props.params !== undefined && { params: props.params }),
     ...(props.skipAuthHeader && { skipAuthHeader: true }),
   };
 

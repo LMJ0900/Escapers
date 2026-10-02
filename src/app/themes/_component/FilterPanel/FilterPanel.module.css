@@ -1,0 +1,87 @@
+.root {
+  display: flex;
+  flex-direction: column;
+}
+
+.hr {
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 24px 0;
+}
+
+.groupLabel {
+  margin: 0 0 14px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkbox {
+  appearance: none;
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.checkbox:checked {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--color-text-inverse);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.optionLabel {
+  flex-grow: 1;
+}
+
+.count {
+  color: var(--color-text-subtle);
+  font-size: 12px;
+}
+
+.resetBtn {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-text);
+  font-size: 12px;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.resetBtn:hover {
+  color: var(--color-text-muted);
+}

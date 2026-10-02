@@ -4,9 +4,9 @@ import ThemeCarousel from "./_component/ThemeCarousel/ThemeCarousel";
 
 export default async function Home() {
   const [hotThemes, horrorThemes, activeThemes] = await Promise.all([
-    ThemeQuery.getHotThemes(),
-    ThemeQuery.getHorrorThemes(),
-    ThemeQuery.getActiveThemes(),
+    ThemeQuery.getThemeCollection("hot"),
+    ThemeQuery.getThemeCollection("horror"),
+    ThemeQuery.getThemeCollection("active"),
   ]);
 
   return (
@@ -14,19 +14,19 @@ export default async function Home() {
       <ThemeCarousel
         eyebrow="Hot Right Now"
         title="요즘 핫한 테마"
-        listType="hot"
+        collectionType="hot"
         initialThemes={hotThemes}
       />
       <ThemeCarousel
         eyebrow="Spine Chilling"
         title="오싹오싹한 공포 테마"
-        listType="horror"
+        collectionType="horror"
         initialThemes={horrorThemes}
       />
       <ThemeCarousel
         eyebrow="Get Moving"
         title="활동성 높은 테마"
-        listType="active"
+        collectionType="active"
         initialThemes={activeThemes}
       />
     </main>

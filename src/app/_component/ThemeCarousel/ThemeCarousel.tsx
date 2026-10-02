@@ -1,24 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "react-toastify";
-import { FaHeart } from "react-icons/fa";
-import {
-  FiArrowRight,
-  FiChevronLeft,
-  FiChevronRight,
-  FiHeart,
-} from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
-import { ThemeMutation } from "@/api/domain/theme/Theme.mutation";
-import { ThemeQuery, type ThemeListType } from "@/api/domain/theme/Theme.query";
-import type { PutThemeLikeErrorResponse } from "@/api/domain/theme/Theme.error";
-import type { ThemeSummary } from "@/api/domain/theme/Theme.type";
-import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
+import { ThemeQuery } from "@/api/domain/theme/Theme.query";
+import type {
+  ThemeCollectionType,
+  ThemeListItem,
+} from "@/api/domain/theme/Theme.type";
+import ThemeCard from "@/components/ThemeCard";
+import { useThemeLike } from "@/hooks/useThemeLike";
 import { bindClassNames } from "@/util/BindClassName";
 
+import CarouselDots from "./_component/CarouselDots/CarouselDots";
+import CarouselHeader from "./_component/CarouselHeader/CarouselHeader";
 import styles from "./ThemeCarousel.module.css";
 
 const cx = bindClassNames(styles);
@@ -29,24 +25,21 @@ type ThemeCarouselProps = {
   /** 제목 위에 작게 표시되는 영문 문구 */
   eyebrow: string;
   title: string;
-  listType: ThemeListType;
-  initialThemes: ThemeSummary[];
+  collectionType: ThemeCollectionType;
+  initialThemes: ThemeListItem[];
 };
 
 export default function ThemeCarousel({
   eyebrow,
   title,
-  listType,
+  collectionType,
   initialThemes,
 }: ThemeCarouselProps) {
-  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const [pendingLikeId, setPendingLikeId] = useState<string | null>(null);
 
-  const { queryKey, queryFn } = ThemeQuery.themeLists[listType];
   const { data: themes } = useQuery({
-    queryKey,
-    queryFn: () => queryFn(),
+    queryKey: ThemeQuery.getThemeCollectionQueryKey(collectionType),
+    queryFn: () => ThemeQuery.getThemeCollection(collectionType),
     initialData: initialThemes,
   });
 
@@ -55,52 +48,11 @@ export default function ThemeCarousel({
   const goPrev = () => setPage((p) => (p - 1 + pageCount) % pageCount);
   const goNext = () => setPage((p) => (p + 1) % pageCount);
 
-  const { mutate: toggleLike } = useMutation<
-    PutThemeLikeResponse,
-    PutThemeLikeErrorResponse,
-    { themeId: string; liked: boolean }
-  >({
-    mutationFn: ThemeMutation.putLike,
-    onSuccess: (_, variables) => {
-      // 같은 테마가 여러 목록(핫한 테마, 장르별 테마 등)에 동시에 있을 수 있어 모든 테마 목록 캐시를 갱신한다.
-      queryClient.setQueriesData<ThemeSummary[]>(
-        { queryKey: ThemeQuery.themeListQueryKey },
-        (prev) =>
-          prev?.map((theme) =>
-            theme.id === variables.themeId
-              ? { ...theme, liked: variables.liked }
-              : theme
-          )
-      );
-    },
-    onError: (error) => {
-      toast.error(
-        error.code === "AUTH_TOKEN_MISSING"
-          ? "좋아요 기능은 로그인 후 이용할 수 있어요."
-          : "잠시 후 다시 시도해주세요."
-      );
-    },
-    onSettled: () => setPendingLikeId(null),
-  });
-
-  const handleToggleLike = (theme: ThemeSummary) => {
-    setPendingLikeId(theme.id);
-    toggleLike({ themeId: theme.id, liked: !theme.liked });
-  };
+  const { pendingLikeId, toggleLike } = useThemeLike();
 
   return (
     <section className={cx("section")}>
-      <div className={cx("headerRow")}>
-        <div className={cx("headingGroup")}>
-          <span className={cx("eyebrow")}>{eyebrow}</span>
-          <h2 className={cx("title")}>{title}</h2>
-        </div>
-        {/* TODO: 테마 목록 페이지가 구현되면 실제 라우트로 연결 */}
-        <Link href="/themes" className={cx("moreLink")}>
-          더보기
-          <FiArrowRight aria-hidden />
-        </Link>
-      </div>
+      <CarouselHeader eyebrow={eyebrow} title={title} />
 
       <div className={cx("carousel")}>
         {pageCount > 1 && (
@@ -129,46 +81,14 @@ export default function ThemeCarousel({
             return (
               <div
                 key={theme.id}
-                className={cx("card", { cardOffPage: isOffPage })}
+                className={cx("cardSlot", { cardSlotOffPage: isOffPage })}
               >
-                {/* TODO: 테마 상세 페이지가 구현되면 실제 라우트로 연결 */}
-                <Link href={`/themes/${theme.id}`} className={cx("thumbLink")}>
-                  <span className={cx("thumb")} aria-hidden>
-                    <span className={cx("thumbScrim")} />
-                    <span className={cx("rank")}>
-                      {String(theme.rank).padStart(2, "0")}
-                    </span>
-                    <span className={cx("hoverHint")}>
-                      <span className={cx("hoverHintLabel")}>
-                        해당 테마로 이동
-                        <FiArrowRight aria-hidden />
-                      </span>
-                    </span>
-                  </span>
-                  <span className={cx("themeName")}>{theme.name}</span>
-                </Link>
-
-                <div className={cx("metaRow")}>
-                  <span className={cx("branch")}>{theme.branchName}</span>
-                  <button
-                    type="button"
-                    className={cx("heart", { heartLiked: theme.liked })}
-                    aria-pressed={theme.liked}
-                    aria-label={
-                      theme.liked
-                        ? `${theme.name} 좋아요 취소`
-                        : `${theme.name} 좋아요`
-                    }
-                    disabled={pendingLikeId === theme.id}
-                    onClick={() => handleToggleLike(theme)}
-                  >
-                    {theme.liked ? (
-                      <FaHeart aria-hidden />
-                    ) : (
-                      <FiHeart aria-hidden />
-                    )}
-                  </button>
-                </div>
+                <ThemeCard
+                  theme={theme}
+                  rank={theme.rank}
+                  pending={pendingLikeId === theme.id}
+                  onToggleLike={() => toggleLike(theme.id, theme.liked)}
+                />
               </div>
             );
           })}
@@ -189,18 +109,14 @@ export default function ThemeCarousel({
       </div>
 
       {pageCount > 1 && (
-        <div className={cx("dots")}>
-          {Array.from({ length: pageCount }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              className={cx("dot", { dotOn: i === page })}
-              aria-label={`${i * PAGE_SIZE + 1}~${Math.min((i + 1) * PAGE_SIZE, themes.length)}위 테마 보기`}
-              aria-current={i === page ? "true" : undefined}
-              onClick={() => setPage(i)}
-            />
-          ))}
-        </div>
+        <CarouselDots
+          pageCount={pageCount}
+          page={page}
+          onSelect={setPage}
+          getLabel={(i) =>
+            `${i * PAGE_SIZE + 1}~${Math.min((i + 1) * PAGE_SIZE, themes.length)}위 테마 보기`
+          }
+        />
       )}
     </section>
   );

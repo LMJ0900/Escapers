@@ -1,0 +1,39 @@
+.activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 300;
+  white-space: nowrap;
+}
+
+.activityDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.activityHigh {
+  color: var(--color-text);
+}
+
+.activityHigh .activityDot {
+  background: var(--color-brand);
+}
+
+.activityMedium {
+  color: var(--color-text-muted);
+}
+
+.activityMedium .activityDot {
+  background: var(--color-text-subtle);
+}
+
+.activityLow {
+  color: var(--color-text-subtle);
+}
+
+.activityLow .activityDot {
+  border: 1px solid var(--color-border);
+}

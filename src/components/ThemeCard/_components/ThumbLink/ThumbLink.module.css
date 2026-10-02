@@ -1,0 +1,80 @@
+.thumbLink {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.thumbScrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-overlay) 55%, transparent) 100%
+  );
+}
+
+.rank {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 28px;
+  color: var(--color-text-inverse);
+}
+
+.genreTag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  padding: 4px 8px;
+}
+
+.hoverHint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-overlay) 28%, transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.thumbLink:hover .hoverHint,
+.thumbLink:focus-visible .hoverHint {
+  opacity: 1;
+}
+
+.hoverHintLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--color-text-inverse);
+}
+
+.themeName {
+  font-size: 16px;
+  color: var(--color-text);
+}

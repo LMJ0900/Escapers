@@ -1,0 +1,21 @@
+.diffWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.diffLabel {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-subtle);
+}
+
+.diff {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--color-border);
+}
+
+.diffOn {
+  color: var(--color-text-muted);
+}

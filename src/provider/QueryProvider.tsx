@@ -7,13 +7,32 @@ import { toast } from "react-toastify";
 
 import { isApiErrorResponse } from "@/api/ApiErrorRes";
 
+const MAX_QUERY_RETRY = 3;
+
+/**
+ * 서버가 4xx로 응답한 요청은 재시도해도 결과가 같으므로 재시도하지 않는다.
+ * 5xx와 전송 계층 에러(status 0: 오프라인·타임아웃 등)만 재시도한다.
+ */
+const shouldRetryQuery = (failureCount: number, error: unknown): boolean => {
+  if (
+    isApiErrorResponse(error) &&
+    error.status !== undefined &&
+    error.status >= 400 &&
+    error.status < 500
+  ) {
+    return false;
+  }
+
+  return failureCount < MAX_QUERY_RETRY;
+};
+
 export default function QueryProvider({ children }: { children: ReactNode }) {
   // 렌더마다 새 인스턴스가 생기지 않도록 최초 1회만 생성한다.
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 60_000, retry: 3 },
+          queries: { staleTime: 60_000, retry: shouldRetryQuery },
           mutations: {
             retry: 0,
             // 개별 onError 를 안 준 mutation 실패 시 공통으로 toast 노출.

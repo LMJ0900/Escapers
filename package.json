@@ -2,43 +2,22 @@
   "name": "escapers",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "dev:front": "npm run dev -w @escapers/frontend",
+    "dev:back": "npm run dev -w @escapers/backend",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "createComponent": "node scripts/createComponent.mjs"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^5.9.1",
-    "@tanstack/react-query": "^5.102.8",
-    "@tanstack/react-query-devtools": "^5.102.8",
-    "axios": "^1.20.0",
-    "next": "16.3.3",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "react-hook-form": "^7.87.0",
-    "react-icons": "^5.7.0",
-    "react-toastify": "^11.1.0",
-    "zod": "^4.4.3"
+    "createComponent": "npm run createComponent -w @escapers/frontend --"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.3",
-    "eslint-config-prettier": "^10.1.8",
-    "msw": "^2.15.0",
-    "prettier": "3.9.6",
-    "typescript": "^5"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
+    "prettier": "3.9.6"
   }
 }

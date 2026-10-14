@@ -4,7 +4,7 @@
     {
       "name": "escapers-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["run", "dev:front"],
       "port": 3000
     }
   ]

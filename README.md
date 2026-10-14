@@ -30,7 +30,7 @@ ESLint 는 코드 품질, Prettier 는 포맷을 담당한다. 역할이 겹치�
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `eslint.config.mjs` | flat config. `eslint-config-next` (core-web-vitals + typescript) 뒤에 `eslint-config-prettier/flat` 을 **마지막**에 배치  |
 | `.prettierrc.json`  | 세미콜론 O · 더블쿼트 · `trailingComma: es5` · `printWidth: 80` · `tabWidth: 2` · `arrowParens: always` · `endOfLine: lf` |
-| `.prettierignore`   | 빌드 산출물 · `node_modules/` · `AGENTS.md` · `CLAUDE.md` · `next-env.d.ts` 제외                                          |
+| `.prettierignore`   | 빌드 산출물 · `node_modules/` · `next-env.d.ts` · 모든 마크다운(`*.md` — 문서 · `AGENTS.md` · `CLAUDE.md`) 제외         |
 
 - 커밋 전 `npm run lint` + `npm run format:check` 를 통과시킨다.
 - 포맷만 어긋난 경우 `npm run format` 으로 일괄 정리한다.
@@ -103,8 +103,10 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
 모든 커밋 메시지는 다음 형식을 따른다.
 
 ```
-[Prefix] 변경 내용 요약
+[Prefix][Scope] 변경 내용 요약
 ```
+
+예: `[Feature][FE] 테마 필터 페이지 추가`, `[Fix][BE] 슬롯 비교 시 중복 감지 수정`
 
 ### Prefix 목록
 
@@ -122,6 +124,22 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
 | `[Rename]`   | 파일/폴더명 변경 또는 이동                                                                |
 | `[Design]`   | UI, CSS 등 디자인 관련 변경                                                               |
 | `[Hotfix]`   | 배포 후 긴급 수정                                                                         |
+
+### Scope 목록
+
+변경이 모노레포의 어느 영역에 속하는지 Prefix 뒤에 표시한다.
+
+| Scope      | 대상                 | 설명                                                                                          |
+| ---------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| `[FE]`     | `frontend/`          | Next.js 프론트엔드 (페이지, 컴포넌트, 스타일, MSW 목킹 등)                                    |
+| `[BE]`     | `backend/`           | NestJS API 서버 · 워커 (크롤러, 작업 큐, DB 스키마·마이그레이션 등)                           |
+| `[Shared]` | `shared/`            | 프론트·백엔드 공용 zod 스키마 · DTO 타입 · 에러 코드                                          |
+| `[Root]`   | 루트 · 위 세 곳 외부 | 워크스페이스 설정(`package.json` · `tsconfig.base.json`), 공통 린트/포맷 설정, CI, `docs/` 등 |
+
+- 커밋 하나에는 Scope 도 하나만 붙인다. 여러 영역을 건드리면 영역별로 커밋을 나눈다.
+  (예: API 계약 변경 → `[Feature][Shared]` 스키마 수정 커밋 + `[Feature][BE]` 구현 커밋 + `[Feature][FE]` 연동 커밋)
+- 하나의 변경이 도저히 나눠지지 않으면 주된 영역의 Scope 를 쓰고, 함께 바뀐 영역을 본문에 적는다.
+- 모노레포 전환 이전 커밋에는 Scope 가 없다. 이 커밋들은 `docs` 를 빼면 모두 프론트엔드(`[FE]`) 작업이다.
 
 ### 작성 규칙
 

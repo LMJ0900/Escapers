@@ -1,0 +1,2 @@
+# 줄바꿈을 OS·개인 git 설정(core.autocrlf)과 무관하게 LF 로 통일
+* text=auto eol=lf

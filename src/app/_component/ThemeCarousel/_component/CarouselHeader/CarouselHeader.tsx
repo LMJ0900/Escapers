@@ -13,7 +13,10 @@ type CarouselHeaderProps = {
   title: string;
 };
 
-export default function CarouselHeader({ eyebrow, title }: CarouselHeaderProps) {
+export default function CarouselHeader({
+  eyebrow,
+  title,
+}: CarouselHeaderProps) {
   return (
     <div className={cx("headerRow")}>
       <div className={cx("headingGroup")}>

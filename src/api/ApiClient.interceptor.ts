@@ -50,7 +50,8 @@ export const attachAuthInterceptors = (instance: AxiosInstance): void => {
         return Promise.reject(error);
       }
 
-      const originalRequest = error.config as RetryableRequestConfig | undefined;
+      const originalRequest = error.config as
+        RetryableRequestConfig | undefined;
       const responseBody = error.response?.data;
       // AUTH_TOKEN_INVALID(서명 위조 · 다른 서비스 토큰 등)는 재발급으로 해결될 문제가
       // 아니므로 재시도하지 않는다. 오직 만료(AUTH_TOKEN_EXPIRED)일 때만 재발급한다.

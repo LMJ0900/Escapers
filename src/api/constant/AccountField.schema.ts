@@ -20,4 +20,7 @@ export const passwordFieldSchema = z
 export const nicknameFieldSchema = z
   .string()
   .min(1, "닉네임을 입력해주세요.")
-  .regex(/^[가-힣a-zA-Z0-9]{2,12}$/, "닉네임은 한글·영문·숫자 2~12자로 입력해주세요.");
+  .regex(
+    /^[가-힣a-zA-Z0-9]{2,12}$/,
+    "닉네임은 한글·영문·숫자 2~12자로 입력해주세요."
+  );

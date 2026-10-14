@@ -1,6 +1,5 @@
 import type { ApiErrorResponse } from "./ApiErrorRes";
 
-
 export type ApiResponse<TData = null> =
   | { result: "SUCCESS"; data: TData; error: null }
   | { result: "ERROR"; data: null; error: ApiErrorResponse };

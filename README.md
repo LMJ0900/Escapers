@@ -2,40 +2,107 @@
 
 Next.js 16 (App Router) · React 19 · TanStack Query v5 · TypeScript · CSS (전역 CSS + CSS Modules)
 
+## 모노레포
+
+npm workspaces 로 구성한다. 의존성 설치·스크립트 실행은 항상 **루트**에서 한다.
+
+- 요구 환경: **Node.js 24 LTS 권장** (최소 22.22 / 24.15 — NestJS 12 CLI 요구사항), TypeScript ~6.0 (전 워크스페이스 공통).
+  NestJS 12 는 ESM 전용 패키지라 CommonJS 백엔드가 `require(esm)` 으로 불러오며, 이는 Node 22.12+ 에서만 기본 지원된다.
+
+```
+Escapers/
+├─ frontend/          @escapers/frontend — Next.js (App Router)
+├─ backend/           @escapers/backend  — NestJS 12 (Fastify) API 서버 · 워커 (docs/백엔드명세서.md)
+├─ shared/            @escapers/shared   — 프론트·백엔드 공용 zod 스키마 · DTO 타입 · 에러 코드
+├─ docs/
+├─ package.json       workspaces: ["frontend", "backend", "shared"]
+└─ tsconfig.base.json 워크스페이스 공통 컴파일러 옵션 (각 tsconfig.json 이 extends)
+```
+
+- 특정 워크스페이스에 의존성 추가: `npm install <pkg> -w @escapers/frontend`
+- TypeScript 는 typescript-eslint 지원 범위(<6.1)에 맞춰 `~6.0` 으로 고정한다.
+- `shared` 는 빌드 없이 TS 소스(`shared/src/index.ts`)를 그대로 내보낸다. 프론트는
+  `next.config.ts` 의 `transpilePackages` 로 트랜스파일한다.
+- 아래 "Lint & 포맷" 이후 절의 `src/` · `scripts/` 등 경로는 별도 표기가 없으면 `frontend/` 기준이다.
+
 ## 개발
 
 ```bash
-npm run dev
+npm install
+npm run dev:front   # http://localhost:3000
+npm run dev:back    # http://localhost:4000 (backend/.env 필요, 아래 "백엔드" 참고)
 ```
 
-http://localhost:3000
-
-| 스크립트                  | 설명                                                    |
+| 스크립트 (루트에서 실행)  | 설명                                                    |
 | ------------------------- | ------------------------------------------------------- |
-| `npm run dev`             | 개발 서버                                               |
-| `npm run build`           | 프로덕션 빌드                                           |
-| `npm run start`           | 빌드 결과 실행                                          |
-| `npm run lint`            | ESLint                                                  |
-| `npm run typecheck`       | `tsc --noEmit` 타입 검사                                |
+| `npm run dev:front`       | 프론트 개발 서버                                        |
+| `npm run dev:back`        | 백엔드 API 개발 서버 (watch)                            |
+| `npm run build`           | 전체 워크스페이스 프로덕션 빌드                         |
+| `npm run lint`            | 전체 워크스페이스 ESLint                                |
+| `npm run typecheck`       | 전체 워크스페이스 `tsc --noEmit` 타입 검사              |
 | `npm run format`          | Prettier 로 전체 포맷팅                                 |
 | `npm run format:check`    | 포맷 위반만 검사 (CI 용)                                |
 | `npm run createComponent` | 컴포넌트 폴더 스캐폴드 생성 (아래 "컴포넌트 생성" 참고) |
+
+워크스페이스 전용 스크립트는 `-w` 로 실행한다 (예: `npm run start -w @escapers/frontend`).
+
+## 백엔드
+
+`backend/` — NestJS 12 + Fastify 어댑터. 상세 설계는 [백엔드 명세서](docs/백엔드명세서.md).
+API 서버와 워커는 같은 코드베이스에서 엔트리포인트만 나눈다.
+
+```bash
+docker compose up -d                          # PostgreSQL (루트 docker-compose.yml)
+cp backend/.env.example backend/.env
+npm run prisma:migrate -w @escapers/backend   # 최초 1회 · 스키마 변경 시 (마이그레이션 생성·적용)
+npm run dev:back                              # API (src/main.ts, watch)
+npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
+```
+
+- Prisma 7 (`prisma-client` 제너레이터, CommonJS 출력)을 쓴다. 클라이언트는 `src/generated/prisma/` 에
+  생성되며 커밋하지 않는다. `npm install` · `dev` · `build` · `typecheck` 가 `prisma generate` 를 먼저 실행한다.
+- 모든 응답은 `{ result, data, error }` 엔벨로프로 나간다. 성공은 `ApiResponseInterceptor`,
+  실패는 `GlobalExceptionFilter` 가 감싼다. 비즈니스 에러는 `AppException(<도메인>_ERROR.X)` 로 던진다.
+
+| 파일 / 폴더             | 역할                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`           | API 서버 엔트리. Fastify 어댑터, CORS(프론트 오리진만), 종료 훅                                               |
+| `src/worker.ts`         | 워커 엔트리. HTTP 없이 애플리케이션 컨텍스트만 기동 (`WorkerModule`)                                          |
+| `src/app.module.ts`     | API 루트 모듈. 전역 응답 인터셉터 · 예외 필터 등록                                                            |
+| `src/common/`           | 응답 엔벨로프(`response/`) · `AppException`·전역 예외 필터(`exception/`) · `ZodValidationPipe`(`validation/`) |
+| `src/infra/prisma/`     | `PrismaService` (전역 모듈, `@prisma/adapter-pg`)                                                             |
+| `src/config/`           | 환경변수 zod 스키마(`env.ts`) · 공용 `AppConfigModule`. 검증 실패 시 종료                                     |
+| `src/modules/<도메인>/` | 기능 모듈. `auth/`(signup·login·reissue·logout 구현), `user/`·`theme/`·`reservation/`(빈 틀), `health/`       |
+| `prisma/schema.prisma`  | DB 스키마 (현재 `User` · `UserConsent` · `RefreshToken`). 마이그레이션은 `prisma/migrations/`                 |
+| `.env.example`          | 환경변수 예시 (커밋됨). `.env` 는 커밋하지 않는다                                                             |
+| `nest-cli.json`         | Nest CLI 설정 (`nest g` 로 모듈·컨트롤러 생성 가능)                                                           |
+
+| 스크립트 (`-w @escapers/backend`) | 설명                                          |
+| --------------------------------- | --------------------------------------------- |
+| `dev` / `worker:dev`              | API / 워커 개발 실행 (watch)                  |
+| `build`                           | `dist/` 로 빌드 (`nest build`)                |
+| `prisma:migrate`                  | `prisma migrate dev` (마이그레이션 생성·적용) |
+| `prisma:generate`                 | Prisma Client 재생성                          |
+| `start` / `start:worker`          | 빌드 결과로 API / 워커 실행                   |
+| `lint` · `typecheck`              | ESLint(typescript-eslint) · 타입 검사         |
 
 ## Lint & 포맷
 
 ESLint 는 코드 품질, Prettier 는 포맷을 담당한다. 역할이 겹치는 규칙은
 `eslint-config-prettier` 로 꺼서 서로 충돌하지 않는다.
 
-| 파일                | 내용                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `eslint.config.mjs` | flat config. `eslint-config-next` (core-web-vitals + typescript) 뒤에 `eslint-config-prettier/flat` 을 **마지막**에 배치  |
-| `.prettierrc.json`  | 세미콜론 O · 더블쿼트 · `trailingComma: es5` · `printWidth: 80` · `tabWidth: 2` · `arrowParens: always` · `endOfLine: lf` |
-| `.prettierignore`   | 빌드 산출물 · `node_modules/` · `next-env.d.ts` · 모든 마크다운(`*.md` — 문서 · `AGENTS.md` · `CLAUDE.md`) 제외         |
+| 파일                         | 내용                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/eslint.config.mjs` | flat config. `eslint-config-next` (core-web-vitals + typescript) 뒤에 `eslint-config-prettier/flat` 을 **마지막**에 배치  |
+| `.prettierrc.json`           | 세미콜론 O · 더블쿼트 · `trailingComma: es5` · `printWidth: 80` · `tabWidth: 2` · `arrowParens: always` · `endOfLine: lf` |
+| `.prettierignore`            | 빌드 산출물 · `node_modules/` · `next-env.d.ts` · 모든 마크다운(`*.md` — 문서 · `AGENTS.md` · `CLAUDE.md`) 제외         |
 
 - 커밋 전 `npm run lint` + `npm run format:check` 를 통과시킨다.
 - 포맷만 어긋난 경우 `npm run format` 으로 일괄 정리한다.
 - `.vscode/settings.json` 이 저장 시 Prettier 포맷 + ESLint 자동수정을 건다. 필요한 확장(`esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`)은 `.vscode/extensions.json` 에 추천 등록돼 있다.
-- `AGENTS.md` · `CLAUDE.md` 는 `next dev` 가 매번 재생성하므로 Prettier 대상에서 제외한다.
+- `frontend/AGENTS.md` · `frontend/CLAUDE.md` 는 `next dev` 가 매번 재생성하므로 Prettier 대상에서 제외한다.
+- Prettier 설정(`.prettierrc.json` · `.prettierignore`)은 루트에 하나만 두고 모든 워크스페이스에 적용한다.
+  ESLint 설정은 워크스페이스별로 둔다 (`.vscode/settings.json` 의 `eslint.workingDirectories`).
 
 ## 스타일
 
@@ -96,7 +163,7 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
   - `NEXT_PUBLIC_API_MOCKING` — `enabled`(기본, MSW 목킹) / `disabled`
   - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소. 목킹 시엔 빈 문자열(같은 오리진 요청을 서비스워커가 가로챔)
   - 실제 백엔드에 붙이려면 `.env.development.local` 에 개인적으로 덮어쓴다 (예:
-    `NEXT_PUBLIC_API_MOCKING=disabled`, `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`).
+    `NEXT_PUBLIC_API_MOCKING=disabled`, `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000`).
 
 ## 커밋 컨벤션
 
@@ -236,7 +303,7 @@ docs/18-branch-guide   ─┘                         ▲
 
 ## 구조
 
-레이어별 디렉터리로 나뉘어 있다. `hooks/` 만 아직 빈 폴더이고 나머지는 실제 코드가 있다.
+`frontend/src/` 는 레이어별 디렉터리로 나뉘어 있다. `hooks/` 만 아직 빈 폴더이고 나머지는 실제 코드가 있다.
 각 폴더의 역할은 다음과 같다.
 
 ```
@@ -274,21 +341,31 @@ src/
 도메인은 계속 추가된다. 특정 화면에서만 쓰는 코드는 그 라우트 폴더 안(`_component/` 등)에 두고,
 여러 도메인이 공유하는 것만 `components/` · `api/` · `util/` 등 최상위 레이어로 올린다.
 
+`frontend/` 파일:
+
+```
+scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
+next.config.ts          Next 설정. `@escapers/shared` 트랜스파일, 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
+tsconfig.json           tsconfig.base.json 상속, `@/*` → `./src/*` 경로 별칭, bundler 해석
+eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
+.env.development        팀 공통 환경 변수 (커밋됨). `.env.local` 도 이 폴더에 둔다
+AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
+CLAUDE.md               `@AGENTS.md` · `@../docs/publishing-guidelines.md` 참조
+```
+
 루트 파일:
 
 ```
+package.json            npm workspaces 정의 + 위임 스크립트
+tsconfig.base.json      워크스페이스 공통 컴파일러 옵션 (strict 등)
 docs/요구사항명세서.md   기능 요구사항
+docs/백엔드명세서.md     백엔드 기술 스택 · 모노레포 구조 · API 계약
 docs/에러명세서/          도메인별 에러 응답 명세 (공통 · 로그인 · User)
 docs/publishing-guidelines.md  퍼블리싱(마크업·스타일) 작업 시 아이콘·컬러 규칙
-scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
-next.config.ts          Next 설정. 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
-tsconfig.json           strict 모드, `@/*` → `./src/*` 경로 별칭, bundler 해석
-eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
-.prettierrc.json        Prettier 포맷 규칙
+.prettierrc.json        Prettier 포맷 규칙 (전 워크스페이스 공통)
 .prettierignore         Prettier 제외 경로
 .vscode/                에디터 공유 설정 — settings.json(저장 시 포맷) · extensions.json(추천 확장)
-AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
-CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
+CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md` 참조
 .gitignore              `.env*` 전체 무시, `next-env.d.ts` · `*.tsbuildinfo` 포함
 ```
 

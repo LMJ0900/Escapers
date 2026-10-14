@@ -1,0 +1,15 @@
+.card {
+  min-width: 0;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-sunken);
+}
+
+.line {
+  height: 10px;
+  background: var(--color-surface-sunken);
+  margin-top: 10px;
+}

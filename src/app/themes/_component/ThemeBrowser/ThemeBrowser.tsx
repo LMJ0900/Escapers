@@ -16,6 +16,7 @@ import { ThemeQuery } from "@/api/domain/theme/Theme.query";
 import type { ThemeSortOption } from "@/api/domain/theme/Theme.type";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
 import ThemeCard from "@/components/ThemeCard";
+import ThemeCardSkeleton from "@/components/ThemeCardSkeleton";
 import { useThemeLike } from "@/hooks/useThemeLike";
 import { bindClassNames } from "@/util/BindClassName";
 
@@ -249,17 +250,7 @@ export default function ThemeBrowser({
             <>
               <div className={cx("skeletonRow")}>
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i}>
-                    <div className={cx("skeletonThumb")} />
-                    <div
-                      className={cx("skeletonLine")}
-                      style={{ width: "70%" }}
-                    />
-                    <div
-                      className={cx("skeletonLine")}
-                      style={{ width: "45%" }}
-                    />
-                  </div>
+                  <ThemeCardSkeleton key={i} />
                 ))}
               </div>
               <span className={cx("loadingLabel")}>

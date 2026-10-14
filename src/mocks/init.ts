@@ -7,7 +7,8 @@ let mockingPromise: Promise<void> | null = null;
  */
 export function enableApiMocking(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if (process.env.NEXT_PUBLIC_API_MOCKING !== "enabled") return Promise.resolve();
+  if (process.env.NEXT_PUBLIC_API_MOCKING !== "enabled")
+    return Promise.resolve();
 
   mockingPromise ??= import("@/mocks/browser").then(({ worker }) =>
     worker

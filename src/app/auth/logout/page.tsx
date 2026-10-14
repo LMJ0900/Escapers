@@ -10,5 +10,7 @@ export default async function LogoutPage({
 }: PageProps<"/auth/logout">) {
   const { reason } = await searchParams;
 
-  return <LogoutHandler reason={typeof reason === "string" ? reason : undefined} />;
+  return (
+    <LogoutHandler reason={typeof reason === "string" ? reason : undefined} />
+  );
 }

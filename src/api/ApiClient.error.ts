@@ -1,6 +1,9 @@
 import axios from "axios";
 
-import { UNKNOWN_ERROR_MESSAGE, type ApiErrorResponse } from "@/api/ApiErrorRes";
+import {
+  UNKNOWN_ERROR_MESSAGE,
+  type ApiErrorResponse,
+} from "@/api/ApiErrorRes";
 
 /**
  * 응답이 오지 않은(전송 계층) 에러를 `error` 객체 형태로 맞춘다. (공통 에러 명세서 §6)

@@ -1,9 +1,9 @@
-const DEFAULT_LOCALE = 'ko';
+const DEFAULT_LOCALE = "ko";
 
 /* ------------------------------ server ------------------------------ */
 
 const getServerCookie = async (name: string): Promise<string | null> => {
-  const { cookies } = await import('next/headers');
+  const { cookies } = await import("next/headers");
 
   const cookieStore = await cookies();
 
@@ -11,33 +11,33 @@ const getServerCookie = async (name: string): Promise<string | null> => {
 };
 
 export const getServerRefreshToken = (): Promise<string | null> =>
-  getServerCookie('refreshToken');
+  getServerCookie("refreshToken");
 
 export const getServerAccessToken = (): Promise<string | null> =>
-  getServerCookie('accessToken');
+  getServerCookie("accessToken");
 
 export const getServerLocale = async (): Promise<string> =>
-  (await getServerCookie('NEXT_LOCALE')) ?? DEFAULT_LOCALE;
+  (await getServerCookie("NEXT_LOCALE")) ?? DEFAULT_LOCALE;
 
 /* ------------------------------ client ------------------------------ */
 
 const getClientCookie = (name: string): string | null => {
-  if (typeof document === 'undefined') return null;
+  if (typeof document === "undefined") return null;
 
   const match = document.cookie
-    .split('; ')
+    .split("; ")
     .find((cookie) => cookie.startsWith(`${name}=`));
 
   if (!match) return null;
 
-  return decodeURIComponent(match.slice(match.indexOf('=') + 1));
+  return decodeURIComponent(match.slice(match.indexOf("=") + 1));
 };
 
 export const getClientRefreshToken = (): string | null =>
-  getClientCookie('refreshToken');
+  getClientCookie("refreshToken");
 
 export const getClientAccessToken = (): string | null =>
-  getClientCookie('accessToken');
+  getClientCookie("accessToken");
 
 export const getClientLocale = (): string =>
-  getClientCookie('NEXT_LOCALE') ?? DEFAULT_LOCALE;
+  getClientCookie("NEXT_LOCALE") ?? DEFAULT_LOCALE;

@@ -3,7 +3,10 @@
 import { cookies } from "next/headers";
 
 import { AuthMutation } from "@/api/domain/auth/Auth.mutation";
-import {ACCESS_TOKEN_COOKIE_OPTIONS, REFRESH_TOKEN_COOKIE_OPTIONS,} from "@/constant/token/index";
+import {
+  ACCESS_TOKEN_COOKIE_OPTIONS,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from "@/constant/token/index";
 
 interface SetAuthTokenParams {
   accessToken: string;

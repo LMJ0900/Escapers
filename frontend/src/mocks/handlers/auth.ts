@@ -21,10 +21,10 @@ import {
 export const MOCK_EXPIRED_ACCESS_JWT =
   "eyJhbGciOiJIUzI1NiJ9.fake-expired-access-payload.sig";
 
-const ok = <TData>(data: TData) =>
+const ok = <TData>(data: TData, status = 200) =>
   HttpResponse.json<ApiResponse<TData>>(
     { result: "SUCCESS", data, error: null },
-    { status: 200 }
+    { status }
   );
 
 const fail = <TData>(error: ApiErrorResponse) =>
@@ -105,7 +105,7 @@ export const handlers = [
       status: "ACTIVE",
     });
 
-    return ok<SignupResponse>({ email: body.email });
+    return ok<SignupResponse>({ email: body.email }, 201);
   }),
 
   http.post("*/auth/reissue", async ({ request }) => {

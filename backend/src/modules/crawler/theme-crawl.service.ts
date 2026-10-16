@@ -26,10 +26,33 @@ export type ThemeCrawlReason =
 /** 검증 실패 비율이 이보다 높으면 사이트 구조 변경으로 보고 저장하지 않는다 */
 const MAX_INVALID_RATIO = 0.3;
 
+/**
+ * 변경 여부를 비교할 테마 필드. save() 의 data 와 키를 맞춘다.
+ * 여기에 빠진 키는 항상 "변경됨"으로 판단되므로 누락돼도 갱신이 빠지지는 않는다.
+ */
+const THEME_COMPARE_SELECT = {
+  branchId: true,
+  name: true,
+  genre: true,
+  genreRaw: true,
+  difficulty: true,
+  priceFrom: true,
+  minPlayers: true,
+  maxPlayers: true,
+  playTimeMin: true,
+  description: true,
+  imageUrl: true,
+  detailUrl: true,
+  status: true,
+} as const;
+
 export interface ThemeCrawlStats {
   branches: number;
   created: number;
+  /** 필드 값이 실제로 바뀐 테마 */
   updated: number;
+  /** 다시 확인됐지만 바뀐 필드가 없는 테마 */
+  unchanged: number;
   closed: number;
   invalid: number;
 }
@@ -146,14 +169,21 @@ export class ThemeCrawlService {
   private async save(
     source: Source,
     branches: CrawledBranch[],
-    themes: CrawledTheme[],
+    crawledThemes: CrawledTheme[],
     { closeMissing }: { closeMissing: boolean }
   ): Promise<ThemeCrawlStats> {
     const now = new Date();
+    const themes = dedupeByExternalId(crawledThemes);
+    if (themes.length < crawledThemes.length) {
+      this.logger.warn(
+        `중복된 테마 ID ${crawledThemes.length - themes.length}건은 첫 번째 항목만 저장합니다: ${source.adapterKey}`
+      );
+    }
     const stats: ThemeCrawlStats = {
       branches: branches.length,
       created: 0,
       updated: 0,
+      unchanged: 0,
       closed: 0,
       invalid: 0,
     };
@@ -180,6 +210,19 @@ export class ThemeCrawlService {
           branchIds.set(branch.externalId, saved.id);
         }
 
+        // 기존 테마를 한 번에 읽어 두고 테마마다 findUnique 하지 않는다
+        const existingThemes = await tx.theme.findMany({
+          where: {
+            sourceId: source.id,
+            externalId: { in: themes.map((t) => t.externalId) },
+          },
+          select: { id: true, externalId: true, ...THEME_COMPARE_SELECT },
+        });
+        const existingByExternalId = new Map(
+          existingThemes.map((t) => [t.externalId, t])
+        );
+        const unchangedIds: string[] = [];
+
         for (const theme of themes) {
           const branchId = branchIds.get(theme.branchExternalId);
           if (!branchId) {
@@ -200,30 +243,35 @@ export class ThemeCrawlService {
             detailUrl: theme.detailUrl,
             // 종료됐다가 다시 나타난 테마는 재오픈한다
             status: "OPEN" as const,
-            lastSeenAt: now,
           };
-          const existing = await tx.theme.findUnique({
-            where: {
-              sourceId_externalId: {
-                sourceId: source.id,
-                externalId: theme.externalId,
-              },
-            },
-            select: { id: true },
-          });
-          if (existing) {
-            await tx.theme.update({ where: { id: existing.id }, data });
-            stats.updated++;
-          } else {
+          const existing = existingByExternalId.get(theme.externalId);
+          if (!existing) {
             await tx.theme.create({
               data: {
                 ...data,
                 sourceId: source.id,
                 externalId: theme.externalId,
+                lastSeenAt: now,
               },
             });
             stats.created++;
+          } else if (hasChanges(existing, data)) {
+            await tx.theme.update({
+              where: { id: existing.id },
+              data: { ...data, lastSeenAt: now },
+            });
+            stats.updated++;
+          } else {
+            unchangedIds.push(existing.id);
+            stats.unchanged++;
           }
+        }
+
+        if (unchangedIds.length > 0) {
+          // Prisma update 는 @updatedAt 을 함께 바꾸므로, 바뀐 게 없는 테마는
+          // lastSeenAt 만 직접 갱신해 updatedAt 이 "실제 변경 시각"으로 남게 한다.
+          // 컬럼이 TIMESTAMP(타임존 없음)라 Prisma 처럼 UTC 로 맞춰 넣는다 (DB 세션 타임존과 무관하게)
+          await tx.$executeRaw`UPDATE "Theme" SET "lastSeenAt" = (${now.toISOString()}::timestamptz AT TIME ZONE 'UTC') WHERE "id" = ANY(${unchangedIds}::text[])`;
         }
 
         if (closeMissing) {
@@ -242,6 +290,26 @@ export class ThemeCrawlService {
     );
     return stats;
   }
+}
+
+/**
+ * 같은 테마가 여러 지점 목록에 실려 오면 첫 번째만 남긴다.
+ * 기존 테마를 미리 읽어 두고 비교하므로, 중복이 남아 있으면 같은 테마를 두 번 create 하다 유니크 제약에 걸린다.
+ */
+function dedupeByExternalId(themes: CrawledTheme[]): CrawledTheme[] {
+  const seen = new Map<string, CrawledTheme>();
+  for (const theme of themes) {
+    if (!seen.has(theme.externalId)) seen.set(theme.externalId, theme);
+  }
+  return [...seen.values()];
+}
+
+/** data 의 필드 중 하나라도 기존 값과 다르면 true */
+function hasChanges(
+  existing: Record<string, unknown>,
+  data: Record<string, unknown>
+): boolean {
+  return Object.entries(data).some(([key, value]) => existing[key] !== value);
 }
 
 function validateAll<T>(

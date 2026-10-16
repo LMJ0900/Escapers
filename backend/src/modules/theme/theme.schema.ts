@@ -58,7 +58,7 @@ export type PutThemeLikeRequest = z.infer<typeof putThemeLikeSchema>;
 
 /**
  * 테마 카드 한 장. 프론트 ThemeListItem 과 같은 형태.
- * difficulty · priceFrom · activityLevel 은 크롤링 소스에 정보가 없으면 null 이다.
+ * difficulty · priceFrom · activityLevel · imageUrl 은 크롤링 소스에 정보가 없으면 null 이다.
  */
 export interface ThemeListItem {
   id: string;
@@ -71,6 +71,8 @@ export interface ThemeListItem {
   difficulty: number | null;
   priceFrom: number | null;
   activityLevel: ThemeActivityLevel | null;
+  /** 크롤링한 원본 포스터 URL. 프론트가 Next 이미지 최적화를 거쳐 표시한다. */
+  imageUrl: string | null;
   liked: boolean;
 }
 

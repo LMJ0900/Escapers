@@ -15,6 +15,10 @@
   overflow: hidden;
 }
 
+.poster {
+  object-fit: cover;
+}
+
 .thumbScrim {
   position: absolute;
   left: 0;

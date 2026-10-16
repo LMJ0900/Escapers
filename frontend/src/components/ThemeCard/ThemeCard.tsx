@@ -33,9 +33,13 @@ export default function ThemeCard({
           {theme.brandName} · {theme.branchName}
         </span>
         <div className={cx("priceGroup")}>
-          <span className={cx("price")}>
-            {theme.priceFrom.toLocaleString("ko-KR")}원~
-          </span>
+          {theme.priceFrom === null ? (
+            <span className={cx("price", "priceUnknown")}>가격 문의</span>
+          ) : (
+            <span className={cx("price")}>
+              {theme.priceFrom.toLocaleString("ko-KR")}원~
+            </span>
+          )}
           <LikeButton
             liked={theme.liked}
             themeName={theme.name}
@@ -47,7 +51,9 @@ export default function ThemeCard({
 
       <div className={cx("metaRow")}>
         <DifficultyMeter difficulty={theme.difficulty} />
-        <ActivityBadge activityLevel={theme.activityLevel} />
+        {theme.activityLevel && (
+          <ActivityBadge activityLevel={theme.activityLevel} />
+        )}
       </div>
     </div>
   );

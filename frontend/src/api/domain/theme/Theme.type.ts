@@ -37,10 +37,12 @@ export interface ThemeListItem {
   branchName: string;
   region: string;
   genre: ThemeGenre;
-  /** 1~5 */
-  difficulty: number;
-  priceFrom: number;
-  activityLevel: ThemeActivityLevel;
+  /** 1~5. 크롤링 소스에 정보가 없으면 null */
+  difficulty: number | null;
+  priceFrom: number | null;
+  activityLevel: ThemeActivityLevel | null;
+  /** 크롤링한 원본 포스터 URL. 크롤링 소스에 이미지가 없으면 null */
+  imageUrl: string | null;
   liked: boolean;
 }
 

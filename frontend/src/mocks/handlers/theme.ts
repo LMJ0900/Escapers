@@ -35,6 +35,37 @@ const fail = <TData = null>(error: ApiErrorResponse) =>
   );
 
 type MockThemeListItem = Omit<ThemeListItem, "liked">;
+type MockThemeSeed = Omit<MockThemeListItem, "imageUrl">;
+
+/**
+ * 크롤러가 실제로 수집한 포스터 URL 일부. next.config.ts 의 remotePatterns 를 모두 거치도록
+ * 소스별로 섞어 두었고, 포스터가 없는 테마의 빈 썸네일도 확인할 수 있도록 null 을 하나 끼운다.
+ */
+const MOCK_POSTER_POOL: (string | null)[] = [
+  "https://zeroworldkorea.com/file/theme/34_3417622171.png",
+  "https://xn--2e0b040a4xj.com/storage/theme/2024_08/12/WwP3c6jOOOXBRBrwUs1JXepMo4WThUGlCfbHqR5C.jpg",
+  "https://img.reserv.company/nextedition/konkuk-2/survivor.jpg",
+  "https://zeroworldkorea.com/file/theme/14_7610250240.png",
+  "https://xn--2e0b040a4xj.com/storage/theme/2025_10/30/I6fkjF81lKgNkyvJaS1d4hoJNEluJWisJsrhg6de.png",
+  "https://img.reserv.company/nextedition/konkuk-2/fairy-tale-land-guardians.png",
+  null,
+  "https://zeroworldkorea.com/file/theme/15_1026594960.png",
+  "https://xn--2e0b040a4xj.com/storage/theme/2025_07/16/unjF9iWggG6wE2Vta0LiV9rXKRrXMBzSxz7846fY.jpg",
+  "https://img.reserv.company/nextedition/konkuk-2/save-the-light.jpg",
+  "https://zeroworldkorea.com/file/theme/16_1333210546.png",
+  "https://img.reserv.company/nextedition/konkuk-2/curtain-call.jpg",
+];
+
+/** 시드에 포스터를 순서대로 돌려 붙인다. `offset`으로 손으로 적은 목록과 생성 목록의 시작 위치를 다르게 한다. */
+function withMockPosters(
+  seeds: MockThemeSeed[],
+  offset = 0
+): MockThemeListItem[] {
+  return seeds.map((seed, i) => ({
+    ...seed,
+    imageUrl: MOCK_POSTER_POOL[(i + offset) % MOCK_POSTER_POOL.length],
+  }));
+}
 
 /**
  * 손으로 적어둔 테마 목록. 좋아요 동기화를 확인할 수 있도록 핫/공포/활동성 목록과
@@ -42,7 +73,7 @@ type MockThemeListItem = Omit<ThemeListItem, "liked">;
  * catalog-* 를 몇 개 더 둔다. 필터·정렬·무한 스크롤을 넉넉히 테스트할 수 있도록
  * 아래 `generateCatalogExtras`로 만든 항목과 합쳐 전체 카탈로그를 200개로 채운다.
  */
-const HANDWRITTEN_THEMES: MockThemeListItem[] = [
+const HANDWRITTEN_THEMES: MockThemeListItem[] = withMockPosters([
   {
     id: "theme-1",
     name: "더 라스트 룸",
@@ -373,7 +404,7 @@ const HANDWRITTEN_THEMES: MockThemeListItem[] = [
     priceFrom: 26000,
     activityLevel: "LOW",
   },
-];
+]);
 
 /** 홈 화면 캐러셀이 쓰는 순위 목록. 손으로 적어둔 테마에서 id 순서만 골라 순위를 매긴다. */
 function buildRankedThemeList(
@@ -493,7 +524,7 @@ const GEN_NAME_NOUNS = [
  * 손으로 적은 테마 외에 필터·정렬·무한 스크롤을 넉넉히 테스트할 수 있도록 나머지
  * 분량을 규칙적으로(= Math.random 없이, 매번 같은 결과로) 만들어낸다.
  */
-function generateCatalogExtras(count: number): MockThemeListItem[] {
+function generateCatalogExtras(count: number): MockThemeSeed[] {
   return Array.from({ length: count }, (_, i) => {
     const region = REGION_ORDER[i % REGION_ORDER.length];
     const difficulty = (i % 5) + 1;
@@ -520,18 +551,22 @@ function generateCatalogExtras(count: number): MockThemeListItem[] {
 /** "모든 테마" 목록(필터·정렬·무한 스크롤)의 전체 카탈로그 — 총 200개. */
 const MOCK_THEME_CATALOG: MockThemeListItem[] = [
   ...HANDWRITTEN_THEMES,
-  ...generateCatalogExtras(200 - HANDWRITTEN_THEMES.length),
+  ...withMockPosters(
+    generateCatalogExtras(200 - HANDWRITTEN_THEMES.length),
+    HANDWRITTEN_THEMES.length
+  ),
 ];
 
-/** 전체 카탈로그 기준으로 값별 개수를 세어, 주어진 순서대로 facet 옵션을 만든다. */
+/** 전체 카탈로그 기준으로 값별 개수를 세어, 주어진 순서대로 facet 옵션을 만든다. null 값은 세지 않는다. */
 function buildFacet<T extends string>(
-  pick: (item: MockThemeListItem) => T,
+  pick: (item: MockThemeListItem) => T | null,
   order: readonly T[],
   label: (value: T) => string
 ): ThemeFacetOption[] {
   const counts = new Map<string, number>();
   for (const item of MOCK_THEME_CATALOG) {
     const value = pick(item);
+    if (value === null) continue;
     counts.set(value, (counts.get(value) ?? 0) + 1);
   }
   return order
@@ -566,7 +601,10 @@ const THEME_FACETS: ThemeFacets = {
   ),
 };
 
-/** 정렬 기준에 따라 카탈로그를 정렬한다. '최신순'은 목 데이터라 카탈로그 배열의 등록 순서를 역순으로 쓴다. */
+/**
+ * 정렬 기준에 따라 카탈로그를 정렬한다. '최신순'은 목 데이터라 카탈로그 배열의 등록 순서를 역순으로 쓴다.
+ * 가격·난이도가 null 인 테마는 서버와 같이 방향과 관계없이 맨 뒤로 보낸다.
+ */
 function sortCatalog(
   items: MockThemeListItem[],
   sort: ThemeSortOption
@@ -576,33 +614,45 @@ function sortCatalog(
     MEDIUM: 1,
     LOW: 2,
   };
+  const activityWeight = (item: MockThemeListItem) =>
+    item.activityLevel === null ? 3 : ACTIVITY_WEIGHT[item.activityLevel];
+  const byActivity = (a: MockThemeListItem, b: MockThemeListItem) =>
+    activityWeight(a) - activityWeight(b);
+  const nullsLast = (
+    a: number | null,
+    b: number | null,
+    direction: "asc" | "desc"
+  ) => {
+    if (a === null || b === null)
+      return (a === null ? 1 : 0) - (b === null ? 1 : 0);
+    return direction === "asc" ? a - b : b - a;
+  };
   const indexOf = (item: MockThemeListItem) => MOCK_THEME_CATALOG.indexOf(item);
 
   switch (sort) {
     case "PRICE_ASC":
-      return [...items].sort((a, b) => a.priceFrom - b.priceFrom);
+      return [...items].sort((a, b) =>
+        nullsLast(a.priceFrom, b.priceFrom, "asc")
+      );
     case "PRICE_DESC":
-      return [...items].sort((a, b) => b.priceFrom - a.priceFrom);
+      return [...items].sort((a, b) =>
+        nullsLast(a.priceFrom, b.priceFrom, "desc")
+      );
     case "NEWEST":
       return [...items].sort((a, b) => indexOf(b) - indexOf(a));
     case "DIFFICULTY_DESC":
       return [...items].sort(
         (a, b) =>
-          b.difficulty - a.difficulty ||
-          ACTIVITY_WEIGHT[a.activityLevel] - ACTIVITY_WEIGHT[b.activityLevel]
+          nullsLast(a.difficulty, b.difficulty, "desc") || byActivity(a, b)
       );
     case "DIFFICULTY_ASC":
       return [...items].sort(
         (a, b) =>
-          a.difficulty - b.difficulty ||
-          ACTIVITY_WEIGHT[a.activityLevel] - ACTIVITY_WEIGHT[b.activityLevel]
+          nullsLast(a.difficulty, b.difficulty, "asc") || byActivity(a, b)
       );
     case "POPULAR":
     default:
-      return [...items].sort(
-        (a, b) =>
-          ACTIVITY_WEIGHT[a.activityLevel] - ACTIVITY_WEIGHT[b.activityLevel]
-      );
+      return [...items].sort(byActivity);
   }
 }
 
@@ -723,7 +773,8 @@ export const handlers = [
         (regions.length === 0 || regions.includes(item.region)) &&
         (genres.length === 0 || genres.includes(item.genre)) &&
         (activityLevels.length === 0 ||
-          activityLevels.includes(item.activityLevel))
+          (item.activityLevel !== null &&
+            activityLevels.includes(item.activityLevel)))
     );
     const sorted = sortCatalog(filtered, sort);
 

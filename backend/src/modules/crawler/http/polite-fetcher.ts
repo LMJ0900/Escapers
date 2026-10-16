@@ -31,13 +31,33 @@ export class PoliteFetcher {
     this.minIntervalMs = config.get("CRAWLER_MIN_INTERVAL_MS");
   }
 
-  async getHtml(url: string): Promise<string> {
+  getHtml(url: string): Promise<string> {
+    return this.fetchText(url);
+  }
+
+  /**
+   * 폼 POST. 화면 조각을 POST 로만 내려주는 사이트(예: 예약 화면 AJAX)용.
+   * 조회 요청에만 쓰고, 예약 생성처럼 상태를 바꾸는 요청에는 쓰지 않는다.
+   */
+  postForm(
+    url: string,
+    form: Record<string, string>,
+    { referer }: { referer?: string } = {}
+  ): Promise<string> {
+    return this.fetchText(url, {
+      method: "POST",
+      body: new URLSearchParams(form),
+      headers: referer ? { Referer: referer } : undefined,
+    });
+  }
+
+  private async fetchText(url: string, init?: RequestInit): Promise<string> {
     const target = new URL(url);
     const rules = await this.getRobots(target.origin);
     if (!isAllowed(rules, target.pathname)) {
       throw new CrawlDisallowedError(url);
     }
-    return this.schedule(target.origin, () => this.request(url));
+    return this.schedule(target.origin, () => this.request(url, init));
   }
 
   private getRobots(origin: string): Promise<RobotsRules> {
@@ -54,8 +74,8 @@ export class PoliteFetcher {
     return rules;
   }
 
-  private async request(url: string): Promise<string> {
-    const res = await this.rawFetch(url);
+  private async request(url: string, init?: RequestInit): Promise<string> {
+    const res = await this.rawFetch(url, init);
     if (res.status === 403 || res.status === 429) {
       throw new CrawlBlockedError(url, res.status);
     }
@@ -65,10 +85,15 @@ export class PoliteFetcher {
     return res.text();
   }
 
-  private rawFetch(url: string): Promise<Response> {
-    this.logger.debug(`GET ${url}`);
+  private rawFetch(url: string, init: RequestInit = {}): Promise<Response> {
+    this.logger.debug(`${init.method ?? "GET"} ${url}`);
     return fetch(url, {
-      headers: { "User-Agent": this.userAgent, Accept: "text/html,*/*" },
+      ...init,
+      headers: {
+        ...(init.headers as Record<string, string> | undefined),
+        "User-Agent": this.userAgent,
+        Accept: "text/html,*/*",
+      },
       redirect: "follow",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

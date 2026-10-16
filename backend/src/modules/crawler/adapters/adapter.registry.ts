@@ -1,9 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import type { CrawlerAdapter } from "./crawler.adapter";
+import { JigubyeolAdapter } from "./jigubyeol.adapter";
 import { NextEditionAdapter } from "./nextedition.adapter";
+import { ZeroWorldAdapter } from "./zeroworld.adapter";
 
 // 새 브랜드 어댑터는 여기에 추가한다. key 는 Source.adapterKey 와 같아야 한다.
-const ADAPTERS: CrawlerAdapter[] = [new NextEditionAdapter()];
+const ADAPTERS: CrawlerAdapter[] = [
+  new NextEditionAdapter(),
+  new ZeroWorldAdapter(),
+  new JigubyeolAdapter(),
+];
 
 @Injectable()
 export class AdapterRegistry {

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev:front": "npm run dev -w @escapers/frontend",
+    "dev:front:mock": "npm run dev:mock -w @escapers/frontend --",
     "dev:back": "npm run dev -w @escapers/backend",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

@@ -29,13 +29,15 @@ Escapers/
 
 ```bash
 npm install
-npm run dev:front   # http://localhost:3000
-npm run dev:back    # http://localhost:4000 (backend/.env 필요, 아래 "백엔드" 참고)
+npm run dev:front        # http://localhost:3000 (실제 백엔드 연결)
+npm run dev:front:mock   # http://localhost:3000 (MSW 목킹, 백엔드 불필요)
+npm run dev:back         # http://localhost:4000 (backend/.env 필요, 아래 "백엔드" 참고)
 ```
 
 | 스크립트 (루트에서 실행)  | 설명                                                    |
 | ------------------------- | ------------------------------------------------------- |
-| `npm run dev:front`       | 프론트 개발 서버                                        |
+| `npm run dev:front`       | 프론트 개발 서버 (실제 백엔드 연결)                     |
+| `npm run dev:front:mock`  | 프론트 개발 서버 (MSW 목킹, 아래 "API 목킹" 참고)       |
 | `npm run dev:back`        | 백엔드 API 개발 서버 (watch)                            |
 | `npm run build`           | 전체 워크스페이스 프로덕션 빌드                         |
 | `npm run lint`            | 전체 워크스페이스 ESLint                                |
@@ -45,6 +47,7 @@ npm run dev:back    # http://localhost:4000 (backend/.env 필요, 아래 "백엔
 | `npm run createComponent` | 컴포넌트 폴더 스캐폴드 생성 (아래 "컴포넌트 생성" 참고) |
 
 워크스페이스 전용 스크립트는 `-w` 로 실행한다 (예: `npm run start -w @escapers/frontend`).
+`dev:front:mock` 은 뒤에 붙인 인자를 `next dev` 로 넘긴다 (예: `npm run dev:front:mock -- -p 3001`).
 
 ## 백엔드
 
@@ -159,11 +162,10 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
 
 - `.env.local` 에 정의한다.
   - `NEXT_PUBLIC_SITE_URL` — 서버에서 자체 Route Handler 를 절대 URL 로 호출할 때 사용 (예: `http://localhost:3000`)
-- `.env.development` 에 팀 공통값이 커밋돼 있다 (API 목킹 기본 설정).
-  - `NEXT_PUBLIC_API_MOCKING` — `enabled`(기본, MSW 목킹) / `disabled`
-  - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소. 목킹 시엔 빈 문자열(같은 오리진 요청을 서비스워커가 가로챔)
-  - 실제 백엔드에 붙이려면 `.env.development.local` 에 개인적으로 덮어쓴다 (예:
-    `NEXT_PUBLIC_API_MOCKING=disabled`, `NEXT_PUBLIC_API_BASE_URL=http://localhost:4000`).
+- `.env.development` 에 팀 공통값이 커밋돼 있다.
+  - `NEXT_PUBLIC_API_MOCKING` — `enabled` 일 때만 MSW 목킹. 파일에는 두지 않고 `npm run dev:front:mock` 이 주입한다.
+  - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소 (예: `http://localhost:4000`). `.env.local` 또는
+    `.env.development.local` 에 개인적으로 지정한다. 목킹 시엔 값과 무관하게 핸들러가 경로로 가로챈다.
 
 ## 커밋 컨벤션
 
@@ -345,6 +347,7 @@ src/
 
 ```
 scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
+scripts/devMock.mjs          MSW 목킹 개발 서버 실행 (`npm run dev:front:mock`)
 next.config.ts          Next 설정. `@escapers/shared` 트랜스파일, 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
 tsconfig.json           tsconfig.base.json 상속, `@/*` → `./src/*` 경로 별칭, bundler 해석
 eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
@@ -403,13 +406,14 @@ CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md
 
 ## API 목킹 (MSW)
 
-- 개발 환경에서는 기본적으로 MSW 로 API 를 목킹한다 (`.env.development` 의
-  `NEXT_PUBLIC_API_MOCKING=enabled`).
+- `npm run dev:front:mock` 으로 띄우면 MSW 로 API 를 목킹한다. `scripts/devMock.mjs` 가
+  `NEXT_PUBLIC_API_MOCKING=enabled` 를 주입해 `next dev` 를 실행하며, 이미 설정된 프로세스 환경변수는
+  `.env*` 파일이 덮어쓰지 않으므로 개인 env 설정과 무관하게 항상 목킹으로 뜬다.
+  브라우저 콘솔에 `[MSW] Mocking enabled.` 가 찍히면 정상.
 - `src/mocks/handlers/` — 도메인별 핸들러. `src/mocks/browser.ts`(클라이언트) ·
   `src/mocks/server.ts`(서버) · `src/mocks/init.ts` 가 환경별 워커를 기동한다.
 - 브라우저 목킹은 `provider/MSWProvider.tsx` 에서, 서버(RSC/Route Handler/Proxy) 목킹은
   `src/instrumentation.ts` 에서 켠다.
-- 실제 백엔드에 붙이려면 `.env.development.local` 에 `NEXT_PUBLIC_API_MOCKING=disabled` 와
-  `NEXT_PUBLIC_API_BASE_URL` 을 넣어 개인적으로 덮어쓴다.
+- 실제 백엔드에 붙이려면 `npm run dev:front` 로 띄운다 (`NEXT_PUBLIC_API_BASE_URL` 필요, "환경 변수" 참고).
 - Turbopack 번들링과 `msw/node` 의 충돌을 피하기 위해 `next.config.ts` 가 개발 환경에서만
   `msw` 를 `serverExternalPackages` 로 뺀다.

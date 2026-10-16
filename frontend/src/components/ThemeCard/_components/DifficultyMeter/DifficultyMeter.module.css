@@ -16,6 +16,10 @@
   color: var(--color-border);
 }
 
+.diffUnknown {
+  color: var(--color-text-subtle);
+}
+
 .diffOn {
   color: var(--color-text-muted);
 }

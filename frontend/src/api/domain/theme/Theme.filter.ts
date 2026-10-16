@@ -12,6 +12,13 @@ export const GENRE_LABEL: Record<ThemeGenre, string> = {
   MYSTERY: "추리",
   SF: "SF",
   COMEDY: "코미디",
+  THRILLER: "스릴러",
+  FANTASY: "판타지",
+  ADVENTURE: "어드벤처",
+  DRAMA: "드라마",
+  ROMANCE: "로맨스",
+  OUTDOOR: "야외",
+  ETC: "기타",
 };
 
 export const ACTIVITY_LABEL: Record<ThemeActivityLevel, string> = {
@@ -30,7 +37,7 @@ export const THEME_SORT_OPTIONS: { value: ThemeSortOption; label: string }[] = [
 ];
 
 const SORT_VALUES = THEME_SORT_OPTIONS.map((option) => option.value);
-const GENRE_VALUES = ["HORROR", "IMMERSIVE", "MYSTERY", "SF", "COMEDY"];
+const GENRE_VALUES = Object.keys(GENRE_LABEL);
 const ACTIVITY_VALUES = ["HIGH", "MEDIUM", "LOW"];
 
 export type ThemeFilterState = Required<

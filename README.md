@@ -71,12 +71,14 @@ npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
 | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `src/main.ts`           | API 서버 엔트리. Fastify 어댑터, CORS(프론트 오리진만), 종료 훅                                               |
 | `src/worker.ts`         | 워커 엔트리. HTTP 없이 애플리케이션 컨텍스트만 기동 (`WorkerModule`)                                          |
+| `src/crawl.ts`          | 테마 크롤러 수동 실행 CLI (아래 "테마 크롤러")                                                                |
 | `src/app.module.ts`     | API 루트 모듈. 전역 응답 인터셉터 · 예외 필터 등록                                                            |
 | `src/common/`           | 응답 엔벨로프(`response/`) · `AppException`·전역 예외 필터(`exception/`) · `ZodValidationPipe`(`validation/`) |
 | `src/infra/prisma/`     | `PrismaService` (전역 모듈, `@prisma/adapter-pg`)                                                             |
 | `src/config/`           | 환경변수 zod 스키마(`env.ts`) · 공용 `AppConfigModule`. 검증 실패 시 종료                                     |
-| `src/modules/<도메인>/` | 기능 모듈. `auth/`(signup·login·reissue·logout 구현), `user/`·`theme/`·`reservation/`(빈 틀), `health/`       |
-| `prisma/schema.prisma`  | DB 스키마 (현재 `User` · `UserConsent` · `RefreshToken`). 마이그레이션은 `prisma/migrations/`                 |
+| `src/modules/<도메인>/` | 기능 모듈. `auth/`(signup·login·reissue·logout, 액세스 토큰 가드 · `@CurrentUser`), `user/`(getMe·정보 수정·탈퇴), `theme/`(목록·컬렉션·좋아요), `reservation/`(빈 틀), `health/` |
+| `src/modules/crawler/`  | 테마 크롤러. `adapters/`(브랜드별 어댑터 · 레지스트리), `http/`(`PoliteFetcher` — robots.txt · 요청 간격 · 차단 감지), `normalize/`(장르·난이도·지역 등 정규화), `theme-crawl.service.ts`(검증 · 저장) |
+| `prisma/schema.prisma`  | DB 스키마 (`User` · `UserConsent` · `RefreshToken` · `Brand` · `Branch` · `Theme` · `ThemeLike` · `Source` · `CrawlRun`). 마이그레이션은 `prisma/migrations/` |
 | `.env.example`          | 환경변수 예시 (커밋됨). `.env` 는 커밋하지 않는다                                                             |
 | `nest-cli.json`         | Nest CLI 설정 (`nest g` 로 모듈·컨트롤러 생성 가능)                                                           |
 
@@ -87,7 +89,35 @@ npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
 | `prisma:migrate`                  | `prisma migrate dev` (마이그레이션 생성·적용) |
 | `prisma:generate`                 | Prisma Client 재생성                          |
 | `start` / `start:worker`          | 빌드 결과로 API / 워커 실행                   |
+| `crawl`                           | 테마 크롤러 수동 실행 (아래 "테마 크롤러")    |
 | `lint` · `typecheck`              | ESLint(typescript-eslint) · 타입 검사         |
+
+### 테마 크롤러
+
+브랜드 사이트에서 지점 · 테마 메타데이터를 수집해 DB에 upsert 한다 (`src/crawl.ts`, 실행 전 `build` 를 자동으로 돌린다).
+PostgreSQL 이 떠 있어야 하며, 소스(`Source`)가 없으면 첫 실행 때 브랜드와 함께 자동 등록된다.
+
+```bash
+npm run crawl -w @escapers/backend -- nextedition   # 넥스트에디션
+npm run crawl -w @escapers/backend -- zeroworld     # 제로월드 (제로월드 다이브 포함)
+npm run crawl -w @escapers/backend -- jigubyeol     # 지구별방탈출
+npm run crawl -w @escapers/backend -- all           # 등록된 어댑터 전체
+```
+
+| 어댑터 키     | 브랜드                    | 사이트                                                           | 비고                                                          |
+| ------------- | ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| `nextedition` | 넥스트에디션              | [nextedition.co.kr](https://nextedition.co.kr)                   | 가격은 RSC 페이로드에서 추출                                  |
+| `zeroworld`   | 제로월드 (다이브 포함)    | [zeroworldkorea.com](https://zeroworldkorea.com)                 | 테마는 예약 화면 POST 응답(조회 전용)에서 수집. 약 2분 소요   |
+| `jigubyeol`   | 지구별방탈출              | [지구별방탈출.com](https://xn--2e0b040a4xj.com)                  | 사이트에 가격 정보가 없어 `priceFrom` 은 비어 있음            |
+
+- 두 번째 인자로 실행 사유를 줄 수 있다 (`INITIAL` · `MANUAL`). 생략하면 최초 성공 전에는 `INITIAL`, 이후는 `MANUAL`.
+- 결과는 `CrawlRun` 테이블에 기록된다 (`created` · `updated` · `unchanged` · `closed` · `invalid`).
+  값이 바뀌지 않은 테마는 `lastSeenAt` 만 갱신해 `updatedAt` 이 실제 변경 시각으로 남는다.
+- 검증 실패가 30% 를 넘으면 사이트 구조 변경으로 보고 저장하지 않는다. 일부만 실패하면 `PARTIAL` 로 기록하고 종료 테마 처리(`CLOSED`)는 건너뛴다.
+- 새 브랜드 추가 절차 (상세는 [백엔드 명세서 §6.4 · §6.5](docs/백엔드명세서.md#64-구현된-어댑터)):
+  1. `src/modules/crawler/adapters/` 에 `CrawlerAdapter` 를 구현하고 `adapter.registry.ts` 의 `ADAPTERS` 에 추가한다.
+  2. 포스터 이미지 호스트를 `frontend/next.config.ts` 의 `images.remotePatterns` 에 추가한다 (없으면 이미지가 400).
+  3. 위 어댑터 표를 갱신한다.
 
 ## Lint & 포맷
 
@@ -305,8 +335,7 @@ docs/18-branch-guide   ─┘                         ▲
 
 ## 구조
 
-`frontend/src/` 는 레이어별 디렉터리로 나뉘어 있다. `hooks/` 만 아직 빈 폴더이고 나머지는 실제 코드가 있다.
-각 폴더의 역할은 다음과 같다.
+`frontend/src/` 는 레이어별 디렉터리로 나뉘어 있다. 각 폴더의 역할은 다음과 같다.
 
 ```
 src/
@@ -317,22 +346,24 @@ src/
     (protected)/        로그인 필수 라우트 그룹. 비로그인 진입 시 `/auth/login` 으로 redirect (URL 미노출)
       mypage/             마이페이지. `_component/`(AccountInfo, MypageSidebar) + `reservations/`(예약 내역, WIP)
     auth/logout/         로그아웃 처리 라우트 (`LogoutHandler`)
-    <domain>/           도메인별 라우트 세그먼트 (테마 · 후기 등 추가 예정)
+    themes/              모든 테마 페이지. `ThemeBrowser`(필터 · 정렬 · 무한 스크롤), `FilterPanel`
+    <domain>/           도메인별 라우트 세그먼트 (후기 등 추가 예정)
       _component/        해당 라우트 전용 컴포넌트 (밑줄 = 라우팅에서 제외되는 폴더)
+    _component/          홈 전용 컴포넌트 (`ThemeCarousel`)
     layout.tsx          루트 레이아웃. metadata, <html lang="ko">, globals.css, CoreProvider import
-    page.tsx            홈 라우트 `/`. 현재는 자리표시자만 렌더
+    page.tsx            홈 라우트 `/`. 테마 컬렉션(hot · horror · active) 캐러셀 3개를 렌더
     globals.css         전역 스타일 진입점. colors.css · semantic.css 를 import
   api/                  원격 호출 레이어
     ApiClient.ts         axios 인스턴스. ApiClient.interceptor.ts 에서 401 시 accessToken 자동 재발급
     ApiClient.error.ts · ApiErrorRes.ts · ApiRes.ts   공통 에러/응답 타입 파싱
     constant/             공용 요청 스키마(zod, `AccountField.schema.ts`) · 강제 로그아웃 사유 메시지(`Reason.ts`)
-    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user · reservation(WIP))
-  hooks/                공용 커스텀 훅 (쿼리 · 뮤테이션 훅, UI 훅 등)
-  components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton 등)
+    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user · theme · reservation(WIP))
+  hooks/                공용 커스텀 훅 (`useThemeLike` — 좋아요 성공 시 모든 테마 목록 캐시를 함께 갱신, 비로그인 안내 토스트)
+  components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton · SignupForm · ThemeCard · ThemeCardSkeleton 등)
   provider/             전역 프로바이더. CoreProvider 가 아래를 조립
     MSWProvider.tsx       개발 환경 API 목킹(MSW) 기동
     QueryProvider.tsx     QueryClientProvider + Devtools + 공통 에러 toast
-  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/accountStore.ts — 가입 계정을 반영하는 목 계정 저장소, browser.ts · server.ts · init.ts)
+  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/ — accountStore.ts(가입 계정 반영) · themeLikeStore.ts(계정별 좋아요) · token.ts, browser.ts · server.ts · init.ts)
   constant/             공용 상수 (token/ 쿠키 옵션, environment/ 환경 변수 래퍼 등)
   styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css · fonts.ts)
   util/                 순수 헬퍼 함수 (BindClassName 등)
@@ -348,7 +379,8 @@ src/
 ```
 scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
 scripts/devMock.mjs          MSW 목킹 개발 서버 실행 (`npm run dev:front:mock`)
-next.config.ts          Next 설정. `@escapers/shared` 트랜스파일, 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
+next.config.ts          Next 설정. `@escapers/shared` 트랜스파일, 테마 포스터 이미지 허용 호스트(`images.remotePatterns`, 캐시 1일),
+                        개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
 tsconfig.json           tsconfig.base.json 상속, `@/*` → `./src/*` 경로 별칭, bundler 해석
 eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
 .env.development        팀 공통 환경 변수 (커밋됨). `.env.local` 도 이 폴더에 둔다
@@ -361,6 +393,7 @@ CLAUDE.md               `@AGENTS.md` · `@../docs/publishing-guidelines.md` 참�
 ```
 package.json            npm workspaces 정의 + 위임 스크립트
 tsconfig.base.json      워크스페이스 공통 컴파일러 옵션 (strict 등)
+docker-compose.yml      로컬 PostgreSQL (`docker compose up -d`)
 docs/요구사항명세서.md   기능 요구사항
 docs/백엔드명세서.md     백엔드 기술 스택 · 모노레포 구조 · API 계약
 docs/에러명세서/          도메인별 에러 응답 명세 (공통 · 로그인 · User)
@@ -380,7 +413,7 @@ CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md
 | 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools`, `axios`(HTTP client)                        |
 | 폼     | `react-hook-form` + `@hookform/resolvers`, `zod`(스키마 검증)                                              |
 | UI     | `react-icons`(아이콘), `react-toastify`(토스트)                                                            |
-| 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier`, `msw`(API 목킹) |
+| 개발   | `typescript` ~6.0, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier`, `msw`(API 목킹) |
 
 ## 데이터 계층
 
@@ -394,6 +427,7 @@ CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md
   - `api/domain/<도메인>/` — 도메인별 액션/쿼리/뮤테이션 및 요청·응답 타입
     (예: `domain/auth/Auth.action.ts`, `Auth.mutation.ts`, `Auth.session.ts`,
     `domain/user/User.query.ts`, `User.mutation.ts`(닉네임·이메일·비밀번호·마케팅동의 수정, 회원 탈퇴),
+    `domain/theme/Theme.query.ts`(목록 · 컬렉션), `Theme.mutation.ts`(좋아요), `Theme.filter.ts`(장르 · 활동성 라벨, URL 쿼리 ↔ 필터 상태),
     `domain/reservation/Reservation.query.ts`(WIP)).
 - 인증 토큰(accessToken/refreshToken)은 쿠키로 관리하며, `src/proxy.ts` 가 미들웨어로
   요청마다 accessToken 부재 + refreshToken 존재 시 선제적으로 재발급한다.

@@ -20,6 +20,13 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(60 * 60 * 24 * 14),
+  /** 크롤러 식별 UA. 서비스 식별자와 연락처를 넣는다 (§6.3) */
+  CRAWLER_USER_AGENT: z
+    .string()
+    .min(1)
+    .default("EscapersBot/0.1 (+mailto:contact@escapers.local)"),
+  /** 같은 소스에 보내는 요청 사이의 최소 간격(ms). 기본 3초 (§6.3) */
+  CRAWLER_MIN_INTERVAL_MS: z.coerce.number().int().min(1000).default(3000),
 });
 
 export type Env = z.infer<typeof envSchema>;

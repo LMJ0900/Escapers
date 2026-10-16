@@ -31,6 +31,7 @@ const THEME_LIST_SELECT = {
   difficulty: true,
   priceFrom: true,
   activityLevel: true,
+  imageUrl: true,
   // 커서 인코딩용 정렬 키
   popularityScore: true,
   createdAt: true,
@@ -225,6 +226,7 @@ export class ThemeService {
       difficulty: row.difficulty,
       priceFrom: row.priceFrom,
       activityLevel: row.activityLevel,
+      imageUrl: row.imageUrl,
       liked: likedIds.has(row.id),
     }));
   }

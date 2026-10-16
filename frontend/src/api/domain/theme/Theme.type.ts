@@ -1,4 +1,16 @@
-export type ThemeGenre = "HORROR" | "IMMERSIVE" | "MYSTERY" | "SF" | "COMEDY";
+export type ThemeGenre =
+  | "HORROR"
+  | "THRILLER"
+  | "MYSTERY"
+  | "SF"
+  | "FANTASY"
+  | "ADVENTURE"
+  | "DRAMA"
+  | "ROMANCE"
+  | "COMEDY"
+  | "IMMERSIVE"
+  | "OUTDOOR"
+  | "ETC";
 
 export type ThemeActivityLevel = "HIGH" | "MEDIUM" | "LOW";
 

@@ -40,6 +40,7 @@ model User {
   updatedAt      DateTime       @updatedAt
   consents       UserConsent[]
   refreshTokens  RefreshToken[]
+  themeLikes     ThemeLike[]
 }
 
 model UserConsent {
@@ -65,4 +66,155 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+// ── 테마 · 지점 · 크롤링 (백엔드 명세서 §5, §7.3) ──
+
+/// 정규화된 장르. 원본 표기는 Theme.genreRaw 에 보관한다.
+enum ThemeGenre {
+  HORROR
+  THRILLER
+  MYSTERY
+  SF
+  FANTASY
+  ADVENTURE
+  DRAMA
+  ROMANCE
+  COMEDY
+  IMMERSIVE
+  OUTDOOR
+  ETC
+}
+
+enum ThemeActivityLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ThemeStatus {
+  OPEN
+  CLOSED
+}
+
+enum CrawlEngine {
+  CHEERIO
+  PLAYWRIGHT
+}
+
+enum CrawlRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+model Brand {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  branches Branch[]
+  sources  Source[]
+}
+
+model Branch {
+  id         String   @id @default(cuid())
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  name       String
+  /// 사이트가 쓰는 지점 식별자 (예: nextedition 의 "geondae-1")
+  externalId String?
+  /// 시/도 + 시/군/구 (예: "서울 광진구")
+  region     String
+  address    String
+  lat        Float?
+  lng        Float?
+  phone      String?
+  themes     Theme[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([brandId, name])
+}
+
+model Theme {
+  id              String              @id @default(cuid())
+  branchId        String
+  branch          Branch              @relation(fields: [branchId], references: [id])
+  name            String
+  genre           ThemeGenre
+  genreRaw        String?
+  /// 1~5. 사이트에 정보가 없으면 null
+  difficulty      Int?
+  activityLevel   ThemeActivityLevel?
+  /// 1인 기준 최저가(원). 사이트에 정보가 없으면 null
+  priceFrom       Int?
+  minPlayers      Int?
+  maxPlayers      Int?
+  playTimeMin     Int?
+  description     String?
+  /// 원본 포스터 URL. 오브젝트 스토리지 이전 전까지 임시로 사용
+  imageUrl        String?
+  /// 원본 예약 · 상세 페이지
+  detailUrl       String?
+  status          ThemeStatus         @default(OPEN)
+  popularityScore Float               @default(0)
+  /// 소스가 부여한 테마 ID. 수동 등록 테마는 null
+  externalId      String?
+  sourceId        String?
+  source          Source?             @relation(fields: [sourceId], references: [id])
+  /// 마지막으로 크롤링 결과에서 확인된 시각
+  lastSeenAt      DateTime?
+  likes           ThemeLike[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([sourceId, externalId])
+  @@index([genre])
+  @@index([popularityScore])
+}
+
+model ThemeLike {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  themeId   String
+  theme     Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, themeId])
+  /// 최근 30일 좋아요 수 집계(popularityScore 배치)용
+  @@index([themeId, createdAt])
+}
+
+model Source {
+  id                  String      @id @default(cuid())
+  brandId             String
+  brand               Brand       @relation(fields: [brandId], references: [id])
+  adapterKey          String      @unique
+  baseUrl             String
+  engine              CrawlEngine
+  crawlIntervalSec    Int         @default(300)
+  maxConcurrency      Int         @default(1)
+  enabled             Boolean     @default(true)
+  lastSuccessAt       DateTime?
+  consecutiveFailures Int         @default(0)
+  themes              Theme[]
+  crawlRuns           CrawlRun[]
+}
+
+model CrawlRun {
+  id         String         @id @default(cuid())
+  sourceId   String
+  source     Source         @relation(fields: [sourceId], references: [id])
+  /// "themes" | "slots"
+  kind       String
+  /// crawl:themes 의 실행 사유 (INITIAL · CHANGE_DETECTED · WEEKLY · MANUAL)
+  reason     String?
+  startedAt  DateTime       @default(now())
+  finishedAt DateTime?
+  status     CrawlRunStatus @default(RUNNING)
+  /// 수집 건수 요약 (created · updated · closed · invalid 등)
+  stats      Json?
+  error      String?
+
+  @@index([sourceId, startedAt])
 }

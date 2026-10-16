@@ -2,40 +2,140 @@
 
 Next.js 16 (App Router) · React 19 · TanStack Query v5 · TypeScript · CSS (전역 CSS + CSS Modules)
 
+## 모노레포
+
+npm workspaces 로 구성한다. 의존성 설치·스크립트 실행은 항상 **루트**에서 한다.
+
+- 요구 환경: **Node.js 24 LTS 권장** (최소 22.22 / 24.15 — NestJS 12 CLI 요구사항), TypeScript ~6.0 (전 워크스페이스 공통).
+  NestJS 12 는 ESM 전용 패키지라 CommonJS 백엔드가 `require(esm)` 으로 불러오며, 이는 Node 22.12+ 에서만 기본 지원된다.
+
+```
+Escapers/
+├─ frontend/          @escapers/frontend — Next.js (App Router)
+├─ backend/           @escapers/backend  — NestJS 12 (Fastify) API 서버 · 워커 (docs/백엔드명세서.md)
+├─ shared/            @escapers/shared   — 프론트·백엔드 공용 zod 스키마 · DTO 타입 · 에러 코드
+├─ docs/
+├─ package.json       workspaces: ["frontend", "backend", "shared"]
+└─ tsconfig.base.json 워크스페이스 공통 컴파일러 옵션 (각 tsconfig.json 이 extends)
+```
+
+- 특정 워크스페이스에 의존성 추가: `npm install <pkg> -w @escapers/frontend`
+- TypeScript 는 typescript-eslint 지원 범위(<6.1)에 맞춰 `~6.0` 으로 고정한다.
+- `shared` 는 빌드 없이 TS 소스(`shared/src/index.ts`)를 그대로 내보낸다. 프론트는
+  `next.config.ts` 의 `transpilePackages` 로 트랜스파일한다.
+- 아래 "Lint & 포맷" 이후 절의 `src/` · `scripts/` 등 경로는 별도 표기가 없으면 `frontend/` 기준이다.
+
 ## 개발
 
 ```bash
-npm run dev
+npm install
+npm run dev:front        # http://localhost:3000 (실제 백엔드 연결)
+npm run dev:front:mock   # http://localhost:3000 (MSW 목킹, 백엔드 불필요)
+npm run dev:back         # http://localhost:4000 (backend/.env 필요, 아래 "백엔드" 참고)
 ```
 
-http://localhost:3000
-
-| 스크립트                  | 설명                                                    |
+| 스크립트 (루트에서 실행)  | 설명                                                    |
 | ------------------------- | ------------------------------------------------------- |
-| `npm run dev`             | 개발 서버                                               |
-| `npm run build`           | 프로덕션 빌드                                           |
-| `npm run start`           | 빌드 결과 실행                                          |
-| `npm run lint`            | ESLint                                                  |
-| `npm run typecheck`       | `tsc --noEmit` 타입 검사                                |
+| `npm run dev:front`       | 프론트 개발 서버 (실제 백엔드 연결)                     |
+| `npm run dev:front:mock`  | 프론트 개발 서버 (MSW 목킹, 아래 "API 목킹" 참고)       |
+| `npm run dev:back`        | 백엔드 API 개발 서버 (watch)                            |
+| `npm run build`           | 전체 워크스페이스 프로덕션 빌드                         |
+| `npm run lint`            | 전체 워크스페이스 ESLint                                |
+| `npm run typecheck`       | 전체 워크스페이스 `tsc --noEmit` 타입 검사              |
 | `npm run format`          | Prettier 로 전체 포맷팅                                 |
 | `npm run format:check`    | 포맷 위반만 검사 (CI 용)                                |
 | `npm run createComponent` | 컴포넌트 폴더 스캐폴드 생성 (아래 "컴포넌트 생성" 참고) |
+
+워크스페이스 전용 스크립트는 `-w` 로 실행한다 (예: `npm run start -w @escapers/frontend`).
+`dev:front:mock` 은 뒤에 붙인 인자를 `next dev` 로 넘긴다 (예: `npm run dev:front:mock -- -p 3001`).
+
+## 백엔드
+
+`backend/` — NestJS 12 + Fastify 어댑터. 상세 설계는 [백엔드 명세서](docs/백엔드명세서.md).
+API 서버와 워커는 같은 코드베이스에서 엔트리포인트만 나눈다.
+
+```bash
+docker compose up -d                          # PostgreSQL (루트 docker-compose.yml)
+cp backend/.env.example backend/.env
+npm run prisma:migrate -w @escapers/backend   # 최초 1회 · 스키마 변경 시 (마이그레이션 생성·적용)
+npm run dev:back                              # API (src/main.ts, watch)
+npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
+```
+
+- Prisma 7 (`prisma-client` 제너레이터, CommonJS 출력)을 쓴다. 클라이언트는 `src/generated/prisma/` 에
+  생성되며 커밋하지 않는다. `npm install` · `dev` · `build` · `typecheck` 가 `prisma generate` 를 먼저 실행한다.
+- 모든 응답은 `{ result, data, error }` 엔벨로프로 나간다. 성공은 `ApiResponseInterceptor`,
+  실패는 `GlobalExceptionFilter` 가 감싼다. 비즈니스 에러는 `AppException(<도메인>_ERROR.X)` 로 던진다.
+
+| 파일 / 폴더             | 역할                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`           | API 서버 엔트리. Fastify 어댑터, CORS(프론트 오리진만), 종료 훅                                               |
+| `src/worker.ts`         | 워커 엔트리. HTTP 없이 애플리케이션 컨텍스트만 기동 (`WorkerModule`)                                          |
+| `src/crawl.ts`          | 테마 크롤러 수동 실행 CLI (아래 "테마 크롤러")                                                                |
+| `src/app.module.ts`     | API 루트 모듈. 전역 응답 인터셉터 · 예외 필터 등록                                                            |
+| `src/common/`           | 응답 엔벨로프(`response/`) · `AppException`·전역 예외 필터(`exception/`) · `ZodValidationPipe`(`validation/`) |
+| `src/infra/prisma/`     | `PrismaService` (전역 모듈, `@prisma/adapter-pg`)                                                             |
+| `src/config/`           | 환경변수 zod 스키마(`env.ts`) · 공용 `AppConfigModule`. 검증 실패 시 종료                                     |
+| `src/modules/<도메인>/` | 기능 모듈. `auth/`(signup·login·reissue·logout, 액세스 토큰 가드 · `@CurrentUser`), `user/`(getMe·정보 수정·탈퇴), `theme/`(목록·컬렉션·좋아요), `reservation/`(빈 틀), `health/` |
+| `src/modules/crawler/`  | 테마 크롤러. `adapters/`(브랜드별 어댑터 · 레지스트리), `http/`(`PoliteFetcher` — robots.txt · 요청 간격 · 차단 감지), `normalize/`(장르·난이도·지역 등 정규화), `theme-crawl.service.ts`(검증 · 저장) |
+| `prisma/schema.prisma`  | DB 스키마 (`User` · `UserConsent` · `RefreshToken` · `Brand` · `Branch` · `Theme` · `ThemeLike` · `Source` · `CrawlRun`). 마이그레이션은 `prisma/migrations/` |
+| `.env.example`          | 환경변수 예시 (커밋됨). `.env` 는 커밋하지 않는다                                                             |
+| `nest-cli.json`         | Nest CLI 설정 (`nest g` 로 모듈·컨트롤러 생성 가능)                                                           |
+
+| 스크립트 (`-w @escapers/backend`) | 설명                                          |
+| --------------------------------- | --------------------------------------------- |
+| `dev` / `worker:dev`              | API / 워커 개발 실행 (watch)                  |
+| `build`                           | `dist/` 로 빌드 (`nest build`)                |
+| `prisma:migrate`                  | `prisma migrate dev` (마이그레이션 생성·적용) |
+| `prisma:generate`                 | Prisma Client 재생성                          |
+| `start` / `start:worker`          | 빌드 결과로 API / 워커 실행                   |
+| `crawl`                           | 테마 크롤러 수동 실행 (아래 "테마 크롤러")    |
+| `lint` · `typecheck`              | ESLint(typescript-eslint) · 타입 검사         |
+
+### 테마 크롤러
+
+브랜드 사이트에서 지점 · 테마 메타데이터를 수집해 DB에 upsert 한다 (`src/crawl.ts`, 실행 전 `build` 를 자동으로 돌린다).
+PostgreSQL 이 떠 있어야 하며, 소스(`Source`)가 없으면 첫 실행 때 브랜드와 함께 자동 등록된다.
+
+```bash
+npm run crawl -w @escapers/backend -- nextedition   # 넥스트에디션
+npm run crawl -w @escapers/backend -- zeroworld     # 제로월드 (제로월드 다이브 포함)
+npm run crawl -w @escapers/backend -- jigubyeol     # 지구별방탈출
+npm run crawl -w @escapers/backend -- all           # 등록된 어댑터 전체
+```
+
+| 어댑터 키     | 브랜드                    | 사이트                                                           | 비고                                                          |
+| ------------- | ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| `nextedition` | 넥스트에디션              | [nextedition.co.kr](https://nextedition.co.kr)                   | 가격은 RSC 페이로드에서 추출                                  |
+| `zeroworld`   | 제로월드 (다이브 포함)    | [zeroworldkorea.com](https://zeroworldkorea.com)                 | 테마는 예약 화면 POST 응답(조회 전용)에서 수집. 약 2분 소요   |
+| `jigubyeol`   | 지구별방탈출              | [지구별방탈출.com](https://xn--2e0b040a4xj.com)                  | 사이트에 가격 정보가 없어 `priceFrom` 은 비어 있음            |
+
+- 두 번째 인자로 실행 사유를 줄 수 있다 (`INITIAL` · `MANUAL`). 생략하면 최초 성공 전에는 `INITIAL`, 이후는 `MANUAL`.
+- 결과는 `CrawlRun` 테이블에 기록된다 (`created` · `updated` · `unchanged` · `closed` · `invalid`).
+  값이 바뀌지 않은 테마는 `lastSeenAt` 만 갱신해 `updatedAt` 이 실제 변경 시각으로 남는다.
+- 검증 실패가 30% 를 넘으면 사이트 구조 변경으로 보고 저장하지 않는다. 일부만 실패하면 `PARTIAL` 로 기록하고 종료 테마 처리(`CLOSED`)는 건너뛴다.
+- 새 브랜드 추가 절차 (상세는 [백엔드 명세서 §6.4 · §6.5](docs/백엔드명세서.md#64-구현된-어댑터)):
+  1. `src/modules/crawler/adapters/` 에 `CrawlerAdapter` 를 구현하고 `adapter.registry.ts` 의 `ADAPTERS` 에 추가한다.
+  2. 포스터 이미지 호스트를 `frontend/next.config.ts` 의 `images.remotePatterns` 에 추가한다 (없으면 이미지가 400).
+  3. 위 어댑터 표를 갱신한다.
 
 ## Lint & 포맷
 
 ESLint 는 코드 품질, Prettier 는 포맷을 담당한다. 역할이 겹치는 규칙은
 `eslint-config-prettier` 로 꺼서 서로 충돌하지 않는다.
 
-| 파일                | 내용                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `eslint.config.mjs` | flat config. `eslint-config-next` (core-web-vitals + typescript) 뒤에 `eslint-config-prettier/flat` 을 **마지막**에 배치  |
-| `.prettierrc.json`  | 세미콜론 O · 더블쿼트 · `trailingComma: es5` · `printWidth: 80` · `tabWidth: 2` · `arrowParens: always` · `endOfLine: lf` |
-| `.prettierignore`   | 빌드 산출물 · `node_modules/` · `next-env.d.ts` · 모든 마크다운(`*.md` — 문서 · `AGENTS.md` · `CLAUDE.md`) 제외         |
+| 파일                         | 내용                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `frontend/eslint.config.mjs` | flat config. `eslint-config-next` (core-web-vitals + typescript) 뒤에 `eslint-config-prettier/flat` 을 **마지막**에 배치  |
+| `.prettierrc.json`           | 세미콜론 O · 더블쿼트 · `trailingComma: es5` · `printWidth: 80` · `tabWidth: 2` · `arrowParens: always` · `endOfLine: lf` |
+| `.prettierignore`            | 빌드 산출물 · `node_modules/` · `next-env.d.ts` · 모든 마크다운(`*.md` — 문서 · `AGENTS.md` · `CLAUDE.md`) 제외         |
 
 - 커밋 전 `npm run lint` + `npm run format:check` 를 통과시킨다.
 - 포맷만 어긋난 경우 `npm run format` 으로 일괄 정리한다.
 - `.vscode/settings.json` 이 저장 시 Prettier 포맷 + ESLint 자동수정을 건다. 필요한 확장(`esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`)은 `.vscode/extensions.json` 에 추천 등록돼 있다.
-- `AGENTS.md` · `CLAUDE.md` 는 `next dev` 가 매번 재생성하므로 Prettier 대상에서 제외한다.
+- `frontend/AGENTS.md` · `frontend/CLAUDE.md` 는 `next dev` 가 매번 재생성하므로 Prettier 대상에서 제외한다.
+- Prettier 설정(`.prettierrc.json` · `.prettierignore`)은 루트에 하나만 두고 모든 워크스페이스에 적용한다.
+  ESLint 설정은 워크스페이스별로 둔다 (`.vscode/settings.json` 의 `eslint.workingDirectories`).
 
 ## 스타일
 
@@ -92,11 +192,10 @@ npm run createComponent -- Sidebar --app "(main)/dashboard"  # 라우트 그룹�
 
 - `.env.local` 에 정의한다.
   - `NEXT_PUBLIC_SITE_URL` — 서버에서 자체 Route Handler 를 절대 URL 로 호출할 때 사용 (예: `http://localhost:3000`)
-- `.env.development` 에 팀 공통값이 커밋돼 있다 (API 목킹 기본 설정).
-  - `NEXT_PUBLIC_API_MOCKING` — `enabled`(기본, MSW 목킹) / `disabled`
-  - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소. 목킹 시엔 빈 문자열(같은 오리진 요청을 서비스워커가 가로챔)
-  - 실제 백엔드에 붙이려면 `.env.development.local` 에 개인적으로 덮어쓴다 (예:
-    `NEXT_PUBLIC_API_MOCKING=disabled`, `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`).
+- `.env.development` 에 팀 공통값이 커밋돼 있다.
+  - `NEXT_PUBLIC_API_MOCKING` — `enabled` 일 때만 MSW 목킹. 파일에는 두지 않고 `npm run dev:front:mock` 이 주입한다.
+  - `NEXT_PUBLIC_API_BASE_URL` — 실제 백엔드 주소 (예: `http://localhost:4000`). `.env.local` 또는
+    `.env.development.local` 에 개인적으로 지정한다. 목킹 시엔 값과 무관하게 핸들러가 경로로 가로챈다.
 
 ## 커밋 컨벤션
 
@@ -236,8 +335,7 @@ docs/18-branch-guide   ─┘                         ▲
 
 ## 구조
 
-레이어별 디렉터리로 나뉘어 있다. `hooks/` 만 아직 빈 폴더이고 나머지는 실제 코드가 있다.
-각 폴더의 역할은 다음과 같다.
+`frontend/src/` 는 레이어별 디렉터리로 나뉘어 있다. 각 폴더의 역할은 다음과 같다.
 
 ```
 src/
@@ -248,22 +346,24 @@ src/
     (protected)/        로그인 필수 라우트 그룹. 비로그인 진입 시 `/auth/login` 으로 redirect (URL 미노출)
       mypage/             마이페이지. `_component/`(AccountInfo, MypageSidebar) + `reservations/`(예약 내역, WIP)
     auth/logout/         로그아웃 처리 라우트 (`LogoutHandler`)
-    <domain>/           도메인별 라우트 세그먼트 (테마 · 후기 등 추가 예정)
+    themes/              모든 테마 페이지. `ThemeBrowser`(필터 · 정렬 · 무한 스크롤), `FilterPanel`
+    <domain>/           도메인별 라우트 세그먼트 (후기 등 추가 예정)
       _component/        해당 라우트 전용 컴포넌트 (밑줄 = 라우팅에서 제외되는 폴더)
+    _component/          홈 전용 컴포넌트 (`ThemeCarousel`)
     layout.tsx          루트 레이아웃. metadata, <html lang="ko">, globals.css, CoreProvider import
-    page.tsx            홈 라우트 `/`. 현재는 자리표시자만 렌더
+    page.tsx            홈 라우트 `/`. 테마 컬렉션(hot · horror · active) 캐러셀 3개를 렌더
     globals.css         전역 스타일 진입점. colors.css · semantic.css 를 import
   api/                  원격 호출 레이어
     ApiClient.ts         axios 인스턴스. ApiClient.interceptor.ts 에서 401 시 accessToken 자동 재발급
     ApiClient.error.ts · ApiErrorRes.ts · ApiRes.ts   공통 에러/응답 타입 파싱
     constant/             공용 요청 스키마(zod, `AccountField.schema.ts`) · 강제 로그아웃 사유 메시지(`Reason.ts`)
-    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user · reservation(WIP))
-  hooks/                공용 커스텀 훅 (쿼리 · 뮤테이션 훅, UI 훅 등)
-  components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton 등)
+    domain/<도메인>/      도메인별 액션·쿼리·뮤테이션 + 요청·응답 타입 (auth · user · theme · reservation(WIP))
+  hooks/                공용 커스텀 훅 (`useThemeLike` — 좋아요 성공 시 모든 테마 목록 캐시를 함께 갱신, 비로그인 안내 토스트)
+  components/           도메인에 종속되지 않는 공용 컴포넌트 (Header · Footer · InputBox · SubmitButton · SignupForm · ThemeCard · ThemeCardSkeleton 등)
   provider/             전역 프로바이더. CoreProvider 가 아래를 조립
     MSWProvider.tsx       개발 환경 API 목킹(MSW) 기동
     QueryProvider.tsx     QueryClientProvider + Devtools + 공통 에러 toast
-  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/accountStore.ts — 가입 계정을 반영하는 목 계정 저장소, browser.ts · server.ts · init.ts)
+  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/ — accountStore.ts(가입 계정 반영) · themeLikeStore.ts(계정별 좋아요) · token.ts, browser.ts · server.ts · init.ts)
   constant/             공용 상수 (token/ 쿠키 옵션, environment/ 환경 변수 래퍼 등)
   styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css · fonts.ts)
   util/                 순수 헬퍼 함수 (BindClassName 등)
@@ -274,21 +374,34 @@ src/
 도메인은 계속 추가된다. 특정 화면에서만 쓰는 코드는 그 라우트 폴더 안(`_component/` 등)에 두고,
 여러 도메인이 공유하는 것만 `components/` · `api/` · `util/` 등 최상위 레이어로 올린다.
 
+`frontend/` 파일:
+
+```
+scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
+scripts/devMock.mjs          MSW 목킹 개발 서버 실행 (`npm run dev:front:mock`)
+next.config.ts          Next 설정. `@escapers/shared` 트랜스파일, 테마 포스터 이미지 허용 호스트(`images.remotePatterns`, 캐시 1일),
+                        개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
+tsconfig.json           tsconfig.base.json 상속, `@/*` → `./src/*` 경로 별칭, bundler 해석
+eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
+.env.development        팀 공통 환경 변수 (커밋됨). `.env.local` 도 이 폴더에 둔다
+AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
+CLAUDE.md               `@AGENTS.md` · `@../docs/publishing-guidelines.md` 참조
+```
+
 루트 파일:
 
 ```
+package.json            npm workspaces 정의 + 위임 스크립트
+tsconfig.base.json      워크스페이스 공통 컴파일러 옵션 (strict 등)
+docker-compose.yml      로컬 PostgreSQL (`docker compose up -d`)
 docs/요구사항명세서.md   기능 요구사항
+docs/백엔드명세서.md     백엔드 기술 스택 · 모노레포 구조 · API 계약
 docs/에러명세서/          도메인별 에러 응답 명세 (공통 · 로그인 · User)
 docs/publishing-guidelines.md  퍼블리싱(마크업·스타일) 작업 시 아이콘·컬러 규칙
-scripts/createComponent.mjs  컴포넌트 스캐폴더 (무의존성, `npm run createComponent`)
-next.config.ts          Next 설정. 개발 환경에서 `msw` 를 serverExternalPackages 로 제외 (Turbopack 충돌 방지)
-tsconfig.json           strict 모드, `@/*` → `./src/*` 경로 별칭, bundler 해석
-eslint.config.mjs       flat config. eslint-config-next core-web-vitals + typescript + eslint-config-prettier
-.prettierrc.json        Prettier 포맷 규칙
+.prettierrc.json        Prettier 포맷 규칙 (전 워크스페이스 공통)
 .prettierignore         Prettier 제외 경로
 .vscode/                에디터 공유 설정 — settings.json(저장 시 포맷) · extensions.json(추천 확장)
-AGENTS.md               `next dev` 가 생성/재삽입하는 에이전트 규칙 블록
-CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
+CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md` 참조
 .gitignore              `.env*` 전체 무시, `next-env.d.ts` · `*.tsbuildinfo` 포함
 ```
 
@@ -300,7 +413,7 @@ CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
 | 데이터 | `@tanstack/react-query` v5 + `@tanstack/react-query-devtools`, `axios`(HTTP client)                        |
 | 폼     | `react-hook-form` + `@hookform/resolvers`, `zod`(스키마 검증)                                              |
 | UI     | `react-icons`(아이콘), `react-toastify`(토스트)                                                            |
-| 개발   | `typescript` 5, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier`, `msw`(API 목킹) |
+| 개발   | `typescript` ~6.0, `eslint` 9 + `eslint-config-next`, `prettier` 3 + `eslint-config-prettier`, `msw`(API 목킹) |
 
 ## 데이터 계층
 
@@ -314,6 +427,7 @@ CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
   - `api/domain/<도메인>/` — 도메인별 액션/쿼리/뮤테이션 및 요청·응답 타입
     (예: `domain/auth/Auth.action.ts`, `Auth.mutation.ts`, `Auth.session.ts`,
     `domain/user/User.query.ts`, `User.mutation.ts`(닉네임·이메일·비밀번호·마케팅동의 수정, 회원 탈퇴),
+    `domain/theme/Theme.query.ts`(목록 · 컬렉션), `Theme.mutation.ts`(좋아요), `Theme.filter.ts`(장르 · 활동성 라벨, URL 쿼리 ↔ 필터 상태),
     `domain/reservation/Reservation.query.ts`(WIP)).
 - 인증 토큰(accessToken/refreshToken)은 쿠키로 관리하며, `src/proxy.ts` 가 미들웨어로
   요청마다 accessToken 부재 + refreshToken 존재 시 선제적으로 재발급한다.
@@ -326,13 +440,14 @@ CLAUDE.md               `@AGENTS.md` · `@docs/publishing-guidelines.md` 참조
 
 ## API 목킹 (MSW)
 
-- 개발 환경에서는 기본적으로 MSW 로 API 를 목킹한다 (`.env.development` 의
-  `NEXT_PUBLIC_API_MOCKING=enabled`).
+- `npm run dev:front:mock` 으로 띄우면 MSW 로 API 를 목킹한다. `scripts/devMock.mjs` 가
+  `NEXT_PUBLIC_API_MOCKING=enabled` 를 주입해 `next dev` 를 실행하며, 이미 설정된 프로세스 환경변수는
+  `.env*` 파일이 덮어쓰지 않으므로 개인 env 설정과 무관하게 항상 목킹으로 뜬다.
+  브라우저 콘솔에 `[MSW] Mocking enabled.` 가 찍히면 정상.
 - `src/mocks/handlers/` — 도메인별 핸들러. `src/mocks/browser.ts`(클라이언트) ·
   `src/mocks/server.ts`(서버) · `src/mocks/init.ts` 가 환경별 워커를 기동한다.
 - 브라우저 목킹은 `provider/MSWProvider.tsx` 에서, 서버(RSC/Route Handler/Proxy) 목킹은
   `src/instrumentation.ts` 에서 켠다.
-- 실제 백엔드에 붙이려면 `.env.development.local` 에 `NEXT_PUBLIC_API_MOCKING=disabled` 와
-  `NEXT_PUBLIC_API_BASE_URL` 을 넣어 개인적으로 덮어쓴다.
+- 실제 백엔드에 붙이려면 `npm run dev:front` 로 띄운다 (`NEXT_PUBLIC_API_BASE_URL` 필요, "환경 변수" 참고).
 - Turbopack 번들링과 `msw/node` 의 충돌을 피하기 위해 `next.config.ts` 가 개발 환경에서만
   `msw` 를 `serverExternalPackages` 로 뺀다.

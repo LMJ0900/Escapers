@@ -11,8 +11,8 @@
 관련 문서 · 코드
 
 - 공통 응답/에러 포맷: [공통 에러 명세서](./공통%20에러%20명세서.md)
-- 요청: [`src/api/domain/user/User.query.ts`](../../src/api/domain/user/User.query.ts)
-- 세션 검증(서버 컴포넌트): [`src/api/domain/auth/Auth.session.ts`](../../src/api/domain/auth/Auth.session.ts) (`verifySession`)
+- 요청: [`src/api/domain/user/User.query.ts`](../../frontend/src/api/domain/user/User.query.ts)
+- 세션 검증(서버 컴포넌트): [`src/api/domain/auth/Auth.session.ts`](../../frontend/src/api/domain/auth/Auth.session.ts) (`verifySession`)
 
 ---
 
@@ -35,11 +35,13 @@
 | 메서드                 | 엔드포인트                    | 인증 필요 | 상태     |
 | ---------------------- | ----------------------------- | --------- | -------- |
 | `getMe`                | `GET /user/getMe`             | 필요      | 구현     |
-| `updateNickname`       | `PATCH /user/nickname`        | 필요      | 구현(목) |
-| `updateEmail`          | `PATCH /user/email`           | 필요      | 구현(목) |
-| `updatePassword`       | `PATCH /user/password`        | 필요      | 구현(목) |
-| `updateMarketingAgree` | `PATCH /user/marketing-agree` | 필요      | 구현(목) |
-| `withdraw`             | `DELETE /user/me`             | 필요      | 구현(목) |
+| `updateNickname`       | `PATCH /user/nickname`        | 필요      | 구현     |
+| `updateEmail`          | `PATCH /user/email`           | 필요      | 구현     |
+| `updatePassword`       | `PATCH /user/password`        | 필요      | 구현     |
+| `updateMarketingAgree` | `PATCH /user/marketing-agree` | 필요      | 구현     |
+| `withdraw`             | `DELETE /user/me`             | 필요      | 구현     |
+
+> "구현"은 백엔드(`backend/src/modules/user/`)와 MSW 목(`frontend/src/mocks/handlers/user.ts`) 양쪽에 구현됐다는 뜻이다.
 
 > 인증이 필요 없는 `user` 엔드포인트(예: 공개 프로필 조회)가 추가되면 이 표에 "인증 필요: 불필요"로 표시하고, 해당 메서드 절(§3.x)에서 §2.2 를 상속하지 않는다고 명시한다.
 
@@ -64,16 +66,16 @@ export type UserAuthErrorResponse = ApiErrorResponse<UserAuthErrorCode>;
 | HTTP | code                     | 발생 조건                                                                | 사용자 메시지                                       | 프론트 처리                                                                  | 상태 |
 | ---- | ------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------- | ---- |
 | 401  | `AUTH_TOKEN_MISSING`     | `Authorization` 헤더 없음(비로그인 상태로 호출)                          | 로그인이 필요합니다.                                | `verifySession` 이 `/auth/logout` 으로 리다이렉트(강제 로그아웃 경로 재사용) | 구현 |
-| 401  | `AUTH_TOKEN_INVALID`     | 토큰 서명/형식 불일치(변조 · 다른 서비스 토큰 등)                        | 인증 정보가 올바르지 않습니다. 다시 로그인해주세요. | 동일                                                                         | 예정 |
-| 401  | `AUTH_TOKEN_EXPIRED`     | access token 만료(그리고 refresh 재발급도 실패했거나 시도하지 않은 경우) | 로그인이 만료되었습니다. 다시 로그인해주세요.       | 동일                                                                         | 예정 |
+| 401  | `AUTH_TOKEN_INVALID`     | 토큰 서명/형식 불일치(변조 · 다른 서비스 토큰 등)                        | 인증 정보가 올바르지 않습니다. 다시 로그인해주세요. | 동일                                                                         | 구현 |
+| 401  | `AUTH_TOKEN_EXPIRED`     | access token 만료(그리고 refresh 재발급도 실패했거나 시도하지 않은 경우) | 로그인이 만료되었습니다. 다시 로그인해주세요.       | 동일                                                                         | 구현 |
 | 403  | `AUTH_ACCOUNT_SUSPENDED` | 토큰은 유효하나 `User.status = suspended`(`FR-ADM-03`)                   | 이용이 제한된 계정입니다. 고객센터로 문의해주세요.  | `verifySession` 이 `/auth/logout?reason=suspended` 로 강제 로그아웃          | 구현 |
 | 403  | `AUTH_ACCOUNT_WITHDRAWN` | 토큰은 유효하나 `User.status = withdrawn`(`FR-AUTH-09`)                  | 탈퇴한 계정입니다.                                  | `verifySession` 이 `/auth/logout?reason=withdrawn` 으로 강제 로그아웃        | 구현 |
 
 #### 케이스 노트
 
-- **모든 401 은 `verifySession` 에서 코드와 무관하게 강제 로그아웃 대상이다.** [`Auth.session.ts`](../../src/api/domain/auth/Auth.session.ts) 의 `shouldForceLogout` 은 `err.status === 401` 이면 `code` 매핑(`AUTH_LOGOUT_REASON_BY_CODE`) 유무와 상관없이 `/auth/logout` 으로 보낸다. 즉 `AUTH_TOKEN_INVALID` · `AUTH_TOKEN_EXPIRED` · `AUTH_TOKEN_MISSING` 을 따로 분기할 필요는 없으며, 셋을 나눈 것은 로그 · QA 재현용이다.
+- **모든 401 은 `verifySession` 에서 코드와 무관하게 강제 로그아웃 대상이다.** [`Auth.session.ts`](../../frontend/src/api/domain/auth/Auth.session.ts) 의 `shouldForceLogout` 은 `err.status === 401` 이면 `code` 매핑(`AUTH_LOGOUT_REASON_BY_CODE`) 유무와 상관없이 `/auth/logout` 으로 보낸다. 즉 `AUTH_TOKEN_INVALID` · `AUTH_TOKEN_EXPIRED` · `AUTH_TOKEN_MISSING` 을 따로 분기할 필요는 없으며, 셋을 나눈 것은 로그 · QA 재현용이다.
 - **403 은 `code` 로 사유(`suspended`/`withdrawn`)를 구분해 쿼리스트링으로 넘긴다** (`AUTH_LOGOUT_REASON_BY_CODE`). 새 정지/탈퇴 사유 코드를 추가하면 이 표와 `Auth.session.ts` 의 매핑을 함께 갱신한다.
-- 클라이언트에서 직접 호출하는 [`HeaderActions`](../../src/components/Header/_components/HeaderActions/HeaderActions.tsx) 는 `useQuery` 로 감싸 실패를 조용히 무시(`me` 가 `undefined` 면 로그인 버튼 노출)한다 — 여기서는 강제 리다이렉트를 하지 않는다. **강제 로그아웃은 서버 컴포넌트 경로(`verifySession`)에서만** 일어난다.
+- 클라이언트에서 직접 호출하는 [`HeaderActions`](../../frontend/src/components/Header/_components/HeaderActions/HeaderActions.tsx) 는 `useQuery` 로 감싸 실패를 조용히 무시(`me` 가 `undefined` 면 로그인 버튼 노출)한다 — 여기서는 강제 리다이렉트를 하지 않는다. **강제 로그아웃은 서버 컴포넌트 경로(`verifySession`)에서만** 일어난다.
 
 ### 2.3 네트워크 / 시스템 에러
 
@@ -87,7 +89,7 @@ export type UserAuthErrorResponse = ApiErrorResponse<UserAuthErrorCode>;
 
 ### 3.1 getMe (`GET /user/getMe`)
 
-로그인된 사용자 본인의 정보(`id` · `role` · `email` · `nickname`)를 [`getMeResponse`](../../src/api/domain/user/getMe/response/getMeRes.ts) 형태로 반환한다. §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `getMe` 고유의 추가 에러다.
+로그인된 사용자 본인의 정보(`id` · `role` · `email` · `nickname`)를 [`getMeResponse`](../../frontend/src/api/domain/user/getMe/response/getMeRes.ts) 형태로 반환한다. §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `getMe` 고유의 추가 에러다.
 
 ```ts
 // src/api/domain/user/getMe/response/getMeRes.ts (추가 예정)
@@ -104,11 +106,12 @@ export type GetMeErrorResponse = ApiErrorResponse<GetMeErrorCode>;
 
 #### 케이스 노트
 
-- **`USER_NOT_FOUND` 는 401 처럼 처리한다.** 토큰 자체는 서명상 유효해도 가리키는 사용자가 없으면 "인증되지 않은 상태"와 동일하게 다뤄야 하므로, `verifySession` 확장 시 `shouldForceLogout` 조건에 `err.code === "USER_NOT_FOUND"` 를 추가하는 방안을 검토한다(현재는 미반영 — §6 미결 사항 1).
+- **`USER_NOT_FOUND` 는 401 처럼 처리한다.** 토큰 자체는 서명상 유효해도 가리키는 사용자가 없으면 "인증되지 않은 상태"와 동일하게 다뤄야 하므로, `verifySession` 확장 시 `shouldForceLogout` 조건에 `err.code === "USER_NOT_FOUND"` 를 추가하는 방안을 검토한다(현재는 미반영 — §5 미결 사항 4).
+- **현재 백엔드는 `USER_NOT_FOUND` 대신 공통 코드 `NOT_FOUND`(404)를 반환한다** (`backend/src/modules/user/user.service.ts` `getMe`). 다만 `AccessTokenGuard` 가 토큰 사용자가 없으면 먼저 `AUTH_TOKEN_INVALID`(401)로 막기 때문에 실제로는 거의 도달하지 않는다.
 
 ### 3.2 updateNickname (`PATCH /user/nickname`)
 
-닉네임을 변경한다. 성공 시 최신 [`getMeResponse`](../../src/api/domain/user/getMe/response/getMeRes.ts)를 반환한다. 이메일과 달리 토큰 subject 에 영향이 없어 토큰 재발급은 없다. §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `updateNickname` 고유의 추가 에러다.
+닉네임을 변경한다. 성공 시 최신 [`getMeResponse`](../../frontend/src/api/domain/user/getMe/response/getMeRes.ts)를 반환한다. 이메일과 달리 토큰 subject 에 영향이 없어 토큰 재발급은 없다. §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `updateNickname` 고유의 추가 에러다.
 
 ```ts
 // src/api/domain/user/User.error.ts
@@ -118,7 +121,7 @@ export type UpdateNicknameErrorCode =
 
 | HTTP | code                      | 발생 조건                                             | 사용자 메시지                | 프론트 처리                 | 상태     |
 | ---- | ------------------------- | ----------------------------------------------------- | ---------------------------- | --------------------------- | -------- |
-| 409  | `USER_NICKNAME_DUPLICATE` | 다른 계정이 이미 쓰는 닉네임(본인 현재 닉네임은 제외) | 이미 사용 중인 닉네임이에요. | `nickname` 필드 인라인 에러 | 구현(목) |
+| 409  | `USER_NICKNAME_DUPLICATE` | 다른 계정이 이미 쓰는 닉네임(본인 현재 닉네임은 제외) | 이미 사용 중인 닉네임이에요. | `nickname` 필드 인라인 에러 | 구현     |
 
 #### 케이스 노트
 
@@ -127,7 +130,7 @@ export type UpdateNicknameErrorCode =
 
 ### 3.3 updateEmail (`PATCH /user/email`)
 
-이메일을 변경한다. 이메일은 토큰의 subject라 값이 바뀌면 기존 access/refresh token 이 더 이상 계정을 가리키지 못한다. 새 토큰을 발급해 세션을 이어가는 방식(로그인 응답처럼)도 검토했으나, 프로텍티드 라우트에서 서버 액션(`setAuthToken`) 호출 시 Next.js가 함께 트리거하는 현재 라우트의 암묵적 리렌더가 **이 액션 자체의 쿠키 변경이 적용되기 전의(이전) 쿠키**로 실행돼, `verifySession`이 곧바로 401로 강제 로그아웃시키는 문제가 있었다(재현: 이메일 변경 성공 직후 `/mypage`에서 `AUTH_TOKEN_INVALID`로 즉시 튕김). 그래서 성공 시 [`UpdateEmailResponse`](../../src/api/domain/user/updateEmail/response/UpdateEmailRes.ts)는 새 이메일만 반환하고, 호출부가 `clearAuthToken`으로 세션을 정리한 뒤 로그인 페이지로 보낸다(재로그인 유도). §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `updateEmail` 고유의 추가 에러다.
+이메일을 변경한다. 이메일은 토큰의 subject라 값이 바뀌면 기존 access/refresh token 이 더 이상 계정을 가리키지 못한다. 새 토큰을 발급해 세션을 이어가는 방식(로그인 응답처럼)도 검토했으나, 프로텍티드 라우트에서 서버 액션(`setAuthToken`) 호출 시 Next.js가 함께 트리거하는 현재 라우트의 암묵적 리렌더가 **이 액션 자체의 쿠키 변경이 적용되기 전의(이전) 쿠키**로 실행돼, `verifySession`이 곧바로 401로 강제 로그아웃시키는 문제가 있었다(재현: 이메일 변경 성공 직후 `/mypage`에서 `AUTH_TOKEN_INVALID`로 즉시 튕김). 그래서 성공 시 [`UpdateEmailResponse`](../../frontend/src/api/domain/user/updateEmail/response/UpdateEmailRes.ts)는 새 이메일만 반환하고, 호출부가 `clearAuthToken`으로 세션을 정리한 뒤 로그인 페이지로 보낸다(재로그인 유도). §2.2 의 공통 인증 에러가 모두 적용되며, 아래는 `updateEmail` 고유의 추가 에러다.
 
 ```ts
 // src/api/domain/user/User.error.ts
@@ -136,7 +139,7 @@ export type UpdateEmailErrorCode = UserAuthErrorCode | "USER_EMAIL_DUPLICATE";
 
 | HTTP | code                   | 발생 조건                    | 사용자 메시지                | 프론트 처리              | 상태     |
 | ---- | ---------------------- | ---------------------------- | ---------------------------- | ------------------------ | -------- |
-| 409  | `USER_EMAIL_DUPLICATE` | 다른 계정이 이미 쓰는 이메일 | 이미 사용 중인 이메일이에요. | `email` 필드 인라인 에러 | 구현(목) |
+| 409  | `USER_EMAIL_DUPLICATE` | 다른 계정이 이미 쓰는 이메일 | 이미 사용 중인 이메일이에요. | `email` 필드 인라인 에러 | 구현     |
 
 #### 케이스 노트
 
@@ -154,7 +157,7 @@ export type UpdatePasswordErrorCode =
 
 | HTTP | code                             | 발생 조건                     | 사용자 메시지                      | 프론트 처리                        | 상태     |
 | ---- | -------------------------------- | ----------------------------- | ---------------------------------- | ---------------------------------- | -------- |
-| 401  | `USER_CURRENT_PASSWORD_MISMATCH` | 입력한 현재 비밀번호가 불일치 | 현재 비밀번호가 올바르지 않습니다. | `currentPassword` 필드 인라인 에러 | 구현(목) |
+| 401  | `USER_CURRENT_PASSWORD_MISMATCH` | 입력한 현재 비밀번호가 불일치 | 현재 비밀번호가 올바르지 않습니다. | `currentPassword` 필드 인라인 에러 | 구현     |
 
 ### 3.5 updateMarketingAgree (`PATCH /user/marketing-agree`)
 
@@ -162,7 +165,7 @@ export type UpdatePasswordErrorCode =
 
 ### 3.6 withdraw (`DELETE /user/me`)
 
-회원 탈퇴(`FR-AUTH-09`). 목에서는 계정을 즉시 하드 삭제한다. 성공 시 `null`이며, 호출부가 `clearAuthToken` 으로 세션 쿠키를 정리해야 한다. §2.2 의 공통 인증 에러 외 고유 에러는 없다.
+회원 탈퇴(`FR-AUTH-09`). 백엔드는 `status = WITHDRAWN` 으로 바꾸고 이메일·닉네임을 `withdrawn-<id>` 로 익명화한 뒤 refreshToken 을 모두 폐기한다(원래 이메일·닉네임으로 재가입 가능). 목에서는 계정을 즉시 하드 삭제한다. 성공 시 `null`이며, 호출부가 `clearAuthToken` 으로 세션 쿠키를 정리해야 한다. §2.2 의 공통 인증 에러 외 고유 에러는 없다.
 
 ---
 
@@ -180,7 +183,7 @@ export type UpdatePasswordErrorCode =
 
 ### 4.2 getMe
 
-- [ ] [`HeaderActions`](../../src/components/Header/_components/HeaderActions/HeaderActions.tsx) 클라이언트 호출 실패 시 리다이렉트 없이 로그인 버튼만 노출되는지
+- [ ] [`HeaderActions`](../../frontend/src/components/Header/_components/HeaderActions/HeaderActions.tsx) 클라이언트 호출 실패 시 리다이렉트 없이 로그인 버튼만 노출되는지
 
 ### 4.3 updateNickname
 
@@ -209,7 +212,8 @@ export type UpdatePasswordErrorCode =
 
 1. `updateEmail`은 현재 즉시 전환한다. 실제 백엔드에서는 새 이메일 인증(재확인 메일) 절차를 거친 뒤에만 전환되도록 바뀔 수 있다 — 그 경우 "인증 대기 중" 상태와 별도 확인 엔드포인트가 필요하다.
 2. `updateNickname`의 변경 주기 제한(`FR-PROF-04`가 예시로 든 "30일 1회")은 **논의 후 제거했다** — 정책이 확정되지 않은 채 임의 값(30일)을 코드에 박아두는 것이 부적절하다고 판단했다. 현재는 제한 없이 자유롭게 변경 가능하다. 정책이 확정되면 `UpdateNicknameErrorCode`에 `USER_NICKNAME_CHANGE_LIMITED`를 다시 추가하고 목 핸들러에 쿨다운 검사를 재도입한다. 요구사항 문서 쪽 논의는 [`요구사항명세서.md` §11](../요구사항명세서.md#11-미결-사항-확정-필요) 참고.
-3. `withdraw`는 목에서 개인정보를 하드 삭제한다. `FR-AUTH-09`가 요구하는 "작성 콘텐츠는 익명화 후 보존"은 콘텐츠(리뷰/댓글) 도메인이 생기기 전이라 아직 반영하지 않았다.
+3. `withdraw`는 목에서 개인정보를 하드 삭제하고, 백엔드는 소프트 삭제(익명화)한다. `FR-AUTH-09`가 요구하는 "작성 콘텐츠는 익명화 후 보존"은 콘텐츠(리뷰/댓글) 도메인이 생기기 전이라 아직 반영하지 않았다.
+4. `getMe` 의 사용자 없음 코드: 문서는 `USER_NOT_FOUND`, 백엔드는 공통 `NOT_FOUND` 를 쓴다. 어느 쪽으로 통일할지, 그리고 `verifySession` 이 이를 강제 로그아웃 대상으로 볼지 결정 필요(§3.1).
 
 ---
 
@@ -220,3 +224,4 @@ export type UpdatePasswordErrorCode =
 | v0.1 | 2026-09-15 | `user` 도메인 공통 문서 초안 작성                                                                                |
 | v0.2 | 2026-09-18 | 마이페이지 구현에 맞춰 `updateNickname`/`updateEmail`/`updatePassword`/`updateMarketingAgree`/`withdraw` 추가    |
 | v0.3 | 2026-09-23 | `updateNickname`의 30일 변경 주기 제한을 논의 후 제거(`USER_NICKNAME_CHANGE_LIMITED` 삭제) — §5 미결 사항 2 참고 |
+| v0.4 | 2026-10-16 | 백엔드 User API 구현 반영(상태 `구현(목)` → `구현`), 탈퇴 익명화 · `NOT_FOUND` 차이 기록, 모노레포 이전에 따른 코드 링크 경로 수정 |

@@ -12,9 +12,9 @@ UI 마크업/스타일 작업(퍼블리싱) 시 아래 규칙을 따른다.
 
 색상은 아래 우선순위를 따른다.
 
-1. **`src/styles/semantic.css`의 의미 토큰을 최우선으로 사용한다.**
+1. **`frontend/src/styles/semantic.css`의 의미 토큰을 최우선으로 사용한다.**
    예: `var(--color-bg)`, `var(--color-brand)`, `var(--color-text-muted)`, `var(--color-border)` 등
-2. semantic.css에 알맞은 토큰이 없으면 **`src/styles/colors.css`의 원시 팔레트 토큰을 사용한다.**
+2. semantic.css에 알맞은 토큰이 없으면 **`frontend/src/styles/colors.css`의 원시 팔레트 토큰을 사용한다.**
    예: `var(--color-orange-500)`, `var(--color-stone-200)` 등
 3. colors.css에도 알맞은 색이 없으면 → **colors.css에 새 색을 추가해도 되는지 사용자에게 묻는다.**
 4. 여러 곳에서 반복적으로 쓰일 것 같은 색이면 → **semantic.css에 의미 토큰으로 추가해도 되는지 사용자에게 묻는다.**

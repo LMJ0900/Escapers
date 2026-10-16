@@ -11,6 +11,9 @@
     "source.fixAll.eslint": "explicit"
   },
 
+  // 모노레포: 각 워크스페이스(frontend/ 등)의 eslint.config.mjs 를 기준으로 린트
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
   // Prettier 설정 파일이 있을 때만 포맷 (설정 없는 프로젝트에서 오작동 방지)
   "prettier.requireConfig": true,
 

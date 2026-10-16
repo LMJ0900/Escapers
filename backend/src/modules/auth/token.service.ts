@@ -42,18 +42,18 @@ export class TokenService {
     });
   }
 
-  /** 서명·만료를 검증한다. 만료면 AUTH_TOKEN_EXPIRED, 그 외 실패는 AUTH_TOKEN_INVALID. */
-  async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
-    try {
-      return await this.jwt.verifyAsync<RefreshTokenPayload>(token, {
-        secret: this.config.get("JWT_REFRESH_SECRET"),
-      });
-    } catch (error) {
-      if (error instanceof Error && error.name === "TokenExpiredError") {
-        throw new AppException(AUTH_ERROR.TOKEN_EXPIRED);
-      }
-      throw new AppException(AUTH_ERROR.TOKEN_INVALID);
-    }
+  verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    return this.verify<AccessTokenPayload>(
+      token,
+      this.config.get("JWT_ACCESS_SECRET")
+    );
+  }
+
+  verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+    return this.verify<RefreshTokenPayload>(
+      token,
+      this.config.get("JWT_REFRESH_SECRET")
+    );
   }
 
   refreshTokenExpiresAt(): Date {
@@ -63,5 +63,20 @@ export class TokenService {
   /** DB 조회용 결정적 해시. 리프레시 토큰은 원문 대신 이 값만 저장한다. */
   hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
+  }
+
+  /** 서명·만료를 검증한다. 만료면 AUTH_TOKEN_EXPIRED, 그 외 실패는 AUTH_TOKEN_INVALID. */
+  private async verify<TPayload extends object>(
+    token: string,
+    secret: string
+  ): Promise<TPayload> {
+    try {
+      return await this.jwt.verifyAsync<TPayload>(token, { secret });
+    } catch (error) {
+      if (error instanceof Error && error.name === "TokenExpiredError") {
+        throw new AppException(AUTH_ERROR.TOKEN_EXPIRED);
+      }
+      throw new AppException(AUTH_ERROR.TOKEN_INVALID);
+    }
   }
 }

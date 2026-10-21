@@ -8,7 +8,8 @@ import {
   type CrawledBranch,
   type CrawledTheme,
 } from "./adapters/crawler.adapter";
-import { CrawlBlockedError, CrawlParseError } from "./crawler.error";
+import { completeCrawlRun, failCrawlRun, validateAll } from "./crawl-run";
+import { CrawlParseError } from "./crawler.error";
 import { PoliteFetcher } from "./http/polite-fetcher";
 import {
   normalizeDifficulty,
@@ -126,37 +127,15 @@ export class ThemeCrawlService {
       stats.invalid = invalid;
       const status = invalid === 0 ? "SUCCESS" : "PARTIAL";
 
-      await this.prisma.$transaction([
-        this.prisma.crawlRun.update({
-          where: { id: run.id },
-          data: { status, finishedAt: new Date(), stats: { ...stats } },
-        }),
-        this.prisma.source.update({
-          where: { id: source.id },
-          data: { lastSuccessAt: new Date(), consecutiveFailures: 0 },
-        }),
-      ]);
+      await completeCrawlRun(this.prisma, run.id, source.id, status, stats);
       return stats;
     } catch (error) {
-      const blocked = error instanceof CrawlBlockedError;
-      await this.prisma.$transaction([
-        this.prisma.crawlRun.update({
-          where: { id: run.id },
-          data: {
-            status: "FAILED",
-            finishedAt: new Date(),
-            error: error instanceof Error ? error.message : String(error),
-          },
-        }),
-        this.prisma.source.update({
-          where: { id: source.id },
-          data: {
-            consecutiveFailures: { increment: 1 },
-            // 차단 응답이면 우회하지 않고 소스를 멈춘다 (§6.3)
-            ...(blocked && { enabled: false }),
-          },
-        }),
-      ]);
+      const blocked = await failCrawlRun(
+        this.prisma,
+        run.id,
+        source.id,
+        error
+      );
       if (blocked) {
         this.logger.error(
           `차단 응답으로 소스를 비활성화했습니다: ${source.adapterKey}`
@@ -310,20 +289,4 @@ function hasChanges(
   data: Record<string, unknown>
 ): boolean {
   return Object.entries(data).some(([key, value]) => existing[key] !== value);
-}
-
-function validateAll<T>(
-  items: unknown[],
-  schema: {
-    safeParse(value: unknown): { success: true; data: T } | { success: false };
-  }
-): { valid: T[]; invalid: number } {
-  const valid: T[] = [];
-  let invalid = 0;
-  for (const item of items) {
-    const result = schema.safeParse(item);
-    if (result.success) valid.push(result.data);
-    else invalid++;
-  }
-  return { valid, invalid };
 }

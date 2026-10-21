@@ -12,6 +12,7 @@
     "start": "node dist/main",
     "start:worker": "node dist/worker",
     "crawl": "npm run build && node dist/crawl",
+    "crawl:slots": "npm run build && node dist/crawl-slots",
     "lint": "eslint",
     "typecheck": "prisma generate && tsc --noEmit"
   },

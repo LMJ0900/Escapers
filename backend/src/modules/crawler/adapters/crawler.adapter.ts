@@ -37,6 +37,29 @@ export interface CrawledThemesResult {
   themes: CrawledTheme[];
 }
 
+export const CrawledSlotSchema = z.object({
+  /** CrawledTheme.externalId 와 매칭 */
+  themeExternalId: z.string().min(1),
+  /** 한국 시간 "YYYY-MM-DD" */
+  date: z.iso.date(),
+  /** 한국 시간 "HH:mm" */
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  available: z.boolean(),
+  priceRaw: z.string().optional(),
+});
+export type CrawledSlot = z.infer<typeof CrawledSlotSchema>;
+
+export interface CrawledSlotsResult {
+  slots: CrawledSlot[];
+}
+
+/** 슬롯을 조회할 테마. DB 의 Theme 에서 어댑터가 필요한 값만 넘긴다 */
+export interface SlotTargetTheme {
+  externalId: string;
+  branchExternalId: string;
+  name: string;
+}
+
 export interface CrawlerAdapterContext {
   baseUrl: string;
   fetcher: PoliteFetcher;
@@ -52,5 +75,13 @@ export interface CrawlerAdapter {
   /** 테마 메타데이터 수집 (최초 1회 · 변경 감지 시 · 주 1회 보정 — §7.3) */
   fetchThemes(ctx: CrawlerAdapterContext): Promise<CrawledThemesResult>;
 
-  // fetchSlots 는 빈자리 감시(§7.2) 구현 시 추가한다.
+  /**
+   * 테마 · 날짜별 예약 시간 상태 수집 (§7.2). 지금은 CLI(src/crawl-slots.ts)에서 수동 실행한다.
+   * 예약 화면을 정책상 읽을 수 없는 소스(robots.txt 금지 등)는 구현하지 않는다.
+   */
+  fetchSlots?(
+    ctx: CrawlerAdapterContext,
+    themes: SlotTargetTheme[],
+    dates: string[]
+  ): Promise<CrawledSlotsResult>;
 }

@@ -1,0 +1,6 @@
+/* 하이라이트는 배경이 밝은 형광펜 색이라, 다크 모드에서도 글자는 어두운 색을 고정해 대비를 지킨다. */
+.mark {
+  padding: 0 1px;
+  background: var(--color-orange-200);
+  color: var(--color-gray-950);
+}

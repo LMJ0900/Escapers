@@ -1,0 +1,31 @@
+/* 데스크톱: 검색어가 있을 때만 본문 자리에 결과가 들어온다. */
+.screen {
+  display: none;
+}
+
+.screenActive {
+  display: block;
+}
+
+.hint {
+  margin: 0;
+  padding: 48px 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+}
+
+/* 모바일: 검색창을 열면 화면 전체를 덮는다. 상단 65px 는 고정된 뒤로가기 + 검색창 자리. */
+@media (max-width: 768px) {
+  .screen {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: block;
+    padding-top: 65px;
+    background: var(--color-bg);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

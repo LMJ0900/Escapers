@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { FiSearch, FiUser } from "react-icons/fi";
+import { FiUser } from "react-icons/fi";
 
 import { UserQuery } from "@/api/domain/user/User.query";
 import type { getMeResponse } from "@/api/domain/user/getMe/response/getMeRes";
 import { bindClassNames } from "@/util/BindClassName";
 
+import HeaderSearch from "../HeaderSearch/HeaderSearch";
 import styles from "./HeaderActions.module.css";
 
 const cx = bindClassNames(styles);
@@ -25,10 +26,7 @@ export default function HeaderActions({ initialMe }: HeaderActionsProps) {
 
   return (
     <div className={cx("root")}>
-      {/* TODO: 검색 UI 연결 (오버레이 or 검색 페이지) */}
-      <button type="button" className={cx("iconButton")} aria-label="검색">
-        <FiSearch size={18} aria-hidden />
-      </button>
+      <HeaderSearch />
 
       {me ? (
         <Link href="/mypage" className={cx("iconButton")} aria-label="내 정보">

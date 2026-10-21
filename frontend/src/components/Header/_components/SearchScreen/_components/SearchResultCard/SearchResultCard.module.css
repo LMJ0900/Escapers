@@ -1,0 +1,151 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.posterLink {
+  position: absolute;
+  inset: 0;
+}
+
+.poster {
+  object-fit: cover;
+}
+
+.genreTag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  pointer-events: none;
+}
+
+/* 좋아요 버튼은 기존 LikeButton 을 그대로 쓰고, 썸네일 위에서만 둥근 흰 배경 위에 얹는다. */
+.heart {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+}
+
+.heart > button {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.heart > button[aria-pressed="true"] {
+  color: var(--color-brand);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.name {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.branch {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.priceUnknown {
+  color: var(--color-text-subtle);
+}
+
+@media (max-width: 768px) {
+  .card,
+  .info {
+    gap: 6px;
+  }
+
+  .genreTag {
+    top: 8px;
+    left: 8px;
+    padding: 3px 7px;
+  }
+
+  /* 터치 영역은 44px 로 키우고, 눈에 보이는 둥근 배경은 28px 로 둔다. */
+  .heart {
+    top: 4px;
+    right: 4px;
+    width: 44px;
+    height: 44px;
+    background: none;
+  }
+
+  .heart::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  }
+
+  .heart > button {
+    position: relative;
+    font-size: 13px;
+  }
+
+  .name {
+    font-size: 16px;
+  }
+
+  .meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .branch {
+    max-width: 100%;
+  }
+}

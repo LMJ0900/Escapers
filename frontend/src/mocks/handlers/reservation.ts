@@ -1,24 +1,9 @@
-import { http, HttpResponse, delay } from "msw";
+import { http, delay } from "msw";
 
-import type { ApiErrorResponse } from "@/api/ApiErrorRes";
-import type { ApiResponse } from "@/api/ApiRes";
 import type { getMyReservationsResponse } from "@/api/domain/reservation/getMyReservations/response/getMyReservationsRes";
 
-import { MOCK_EXPIRED_ACCESS_JWT } from "@/mocks/handlers/auth";
-import { accountStore } from "@/mocks/state/accountStore";
-import { getEmailFromToken } from "@/mocks/state/token";
-
-const ok = (data: getMyReservationsResponse) =>
-  HttpResponse.json<ApiResponse<getMyReservationsResponse>>(
-    { result: "SUCCESS", data, error: null },
-    { status: 200 }
-  );
-
-const fail = (error: ApiErrorResponse) =>
-  HttpResponse.json<ApiResponse<getMyReservationsResponse>>(
-    { result: "ERROR", data: null, error },
-    { status: error.status }
-  );
+import { authenticate } from "@/mocks/utils/auth";
+import { fail, ok } from "@/mocks/utils/response";
 
 /**
  * 예약 도메인이 아직 없어 계정별 데이터를 실제로 나누지 않고, 로그인된 계정이면
@@ -58,37 +43,8 @@ export const handlers = [
   http.get("*/reservation/me", async ({ request }) => {
     await delay(300);
 
-    const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice("Bearer ".length)
-      : null;
-
-    if (!token) {
-      return fail({
-        code: "AUTH_TOKEN_MISSING",
-        message: "인증 토큰이 없습니다.",
-        status: 401,
-      });
-    }
-
-    if (token === MOCK_EXPIRED_ACCESS_JWT) {
-      return fail({
-        code: "AUTH_TOKEN_EXPIRED",
-        message: "인증 토큰이 만료되었습니다.",
-        status: 401,
-      });
-    }
-
-    const email = getEmailFromToken(token);
-    const account = email ? accountStore.findByEmail(email) : undefined;
-
-    if (!account) {
-      return fail({
-        code: "AUTH_TOKEN_INVALID",
-        message: "유효하지 않은 인증 토큰입니다.",
-        status: 401,
-      });
-    }
+    const auth = authenticate(request);
+    if ("error" in auth) return fail<getMyReservationsResponse>(auth.error);
 
     return ok(MOCK_RESERVATIONS);
   }),

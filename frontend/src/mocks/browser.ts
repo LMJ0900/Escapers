@@ -1,13 +1,5 @@
 import { setupWorker } from "msw/browser";
 
-import { handlers as authHandlers } from "@/mocks/handlers/auth";
-import { handlers as reservationHandlers } from "@/mocks/handlers/reservation";
-import { handlers as themeHandlers } from "@/mocks/handlers/theme";
-import { handlers as userHandlers } from "@/mocks/handlers/user";
+import { handlers } from "@/mocks/handlers";
 
-export const worker = setupWorker(
-  ...authHandlers,
-  ...userHandlers,
-  ...reservationHandlers,
-  ...themeHandlers
-);
+export const worker = setupWorker(...handlers);

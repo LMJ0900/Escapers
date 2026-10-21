@@ -1,3 +1,7 @@
+/** 인증 목 핸들러에서 AUTH_TOKEN_EXPIRED를 재현하기 위한 값. accessToken 쿠키에 수동으로 넣어 테스트한다. */
+export const MOCK_EXPIRED_ACCESS_JWT =
+  "eyJhbGciOiJIUzI1NiJ9.fake-expired-access-payload.sig";
+
 interface TokenPayload {
   email: string;
 }

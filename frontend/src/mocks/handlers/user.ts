@@ -1,13 +1,10 @@
-import { http, HttpResponse, delay } from "msw";
+import { http, delay } from "msw";
 
-import type { ApiErrorResponse } from "@/api/ApiErrorRes";
-import type { ApiResponse } from "@/api/ApiRes";
 import type { getMeResponse } from "@/api/domain/user/getMe/response/getMeRes";
 import type {
   UpdateEmailErrorCode,
   UpdateNicknameErrorCode,
   UpdatePasswordErrorCode,
-  UserAuthErrorCode,
 } from "@/api/domain/user/User.error";
 import type { UpdateEmailRequest } from "@/api/domain/user/updateEmail/request/UpdateEmailReq";
 import type { UpdateEmailResponse } from "@/api/domain/user/updateEmail/response/UpdateEmailRes";
@@ -16,21 +13,9 @@ import type { UpdateNicknameRequest } from "@/api/domain/user/updateNickname/req
 import type { UpdateNicknameResponse } from "@/api/domain/user/updateNickname/response/UpdateNicknameRes";
 import type { UpdatePasswordRequest } from "@/api/domain/user/updatePassword/request/UpdatePasswordReq";
 
-import { MOCK_EXPIRED_ACCESS_JWT } from "@/mocks/handlers/auth";
 import { accountStore, type MockAccount } from "@/mocks/state/accountStore";
-import { getEmailFromToken } from "@/mocks/state/token";
-
-const ok = <TData>(data: TData) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "SUCCESS", data, error: null },
-    { status: 200 }
-  );
-
-const fail = <TData = null>(error: ApiErrorResponse) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "ERROR", data: null, error },
-    { status: error.status }
-  );
+import { authenticate } from "@/mocks/utils/auth";
+import { fail, ok } from "@/mocks/utils/response";
 
 const toMeResponse = (account: MockAccount): getMeResponse => ({
   id: account.id,
@@ -40,76 +25,15 @@ const toMeResponse = (account: MockAccount): getMeResponse => ({
   marketingAgree: account.marketingAgree,
 });
 
-/** 모든 /user/* 목 핸들러가 공유하는 인증 단계. 실패 시 §2.2 공통 인증 에러를 던진다. */
-function authenticate(
-  request: Request
-): { account: MockAccount } | { error: ApiErrorResponse<UserAuthErrorCode> } {
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
-
-  if (!token) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_MISSING",
-        message: "인증 토큰이 없습니다.",
-        status: 401,
-      },
-    };
-  }
-
-  if (token === MOCK_EXPIRED_ACCESS_JWT) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_EXPIRED",
-        message: "인증 토큰이 만료되었습니다.",
-        status: 401,
-      },
-    };
-  }
-
-  const email = getEmailFromToken(token);
-  const account = email ? accountStore.findByEmail(email) : undefined;
-
-  if (!account) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_INVALID",
-        message: "유효하지 않은 인증 토큰입니다.",
-        status: 401,
-      },
-    };
-  }
-
-  if (account.status === "SUSPENDED") {
-    return {
-      error: {
-        code: "AUTH_ACCOUNT_SUSPENDED",
-        message: "이용이 제한된 계정입니다. 고객센터로 문의해주세요.",
-        status: 403,
-      },
-    };
-  }
-
-  if (account.status === "WITHDRAWN") {
-    return {
-      error: {
-        code: "AUTH_ACCOUNT_WITHDRAWN",
-        message: "탈퇴한 계정입니다.",
-        status: 403,
-      },
-    };
-  }
-
-  return { account };
-}
+/** 모든 /user/* 목 핸들러가 공유하는 인증 단계. 정지·탈퇴 계정도 막는다. */
+const authenticateUser = (request: Request) =>
+  authenticate(request, { checkAccountStatus: true });
 
 export const handlers = [
   http.get("*/user/getMe", async ({ request }) => {
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail<getMeResponse>(auth.error);
 
     return ok(toMeResponse(auth.account));
@@ -119,7 +43,7 @@ export const handlers = [
     const body = (await request.json()) as UpdateNicknameRequest;
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail<UpdateNicknameResponse>(auth.error);
     const { account } = auth;
 
@@ -143,7 +67,7 @@ export const handlers = [
     const body = (await request.json()) as UpdateEmailRequest;
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail<UpdateEmailResponse>(auth.error);
     const { account } = auth;
 
@@ -168,7 +92,7 @@ export const handlers = [
     const body = (await request.json()) as UpdatePasswordRequest;
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail(auth.error);
     const { account } = auth;
 
@@ -188,7 +112,7 @@ export const handlers = [
     const body = (await request.json()) as UpdateMarketingAgreeRequest;
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail<getMeResponse>(auth.error);
     const { account } = auth;
 
@@ -202,7 +126,7 @@ export const handlers = [
   http.delete("*/user/me", async ({ request }) => {
     await delay(300);
 
-    const auth = authenticate(request);
+    const auth = authenticateUser(request);
     if ("error" in auth) return fail(auth.error);
 
     accountStore.remove(auth.account.email);

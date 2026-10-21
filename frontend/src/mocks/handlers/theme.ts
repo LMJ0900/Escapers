@@ -1,14 +1,14 @@
-import { http, HttpResponse, delay } from "msw";
+import {
+  THEME_ACTIVITY,
+  THEME_GENRE,
+  formatActivityLabel,
+} from "@escapers/shared";
+import { http, delay } from "msw";
 
-import type { ApiErrorResponse } from "@/api/ApiErrorRes";
-import type { ApiResponse } from "@/api/ApiRes";
 import type { getThemeCollectionResponse } from "@/api/domain/theme/getThemeCollection/response/getThemeCollectionRes";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
 import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
-import { ACTIVITY_LABEL, GENRE_LABEL } from "@/api/domain/theme/Theme.filter";
-import type { ThemeAuthErrorCode } from "@/api/domain/theme/Theme.error";
 import type {
-  ThemeActivityLevel,
   ThemeCollectionType,
   ThemeFacetOption,
   ThemeFacets,
@@ -17,31 +17,18 @@ import type {
   ThemeSortOption,
 } from "@/api/domain/theme/Theme.type";
 
-import { MOCK_EXPIRED_ACCESS_JWT } from "@/mocks/handlers/auth";
-import { accountStore } from "@/mocks/state/accountStore";
 import { themeLikeStore } from "@/mocks/state/themeLikeStore";
-import { getEmailFromToken } from "@/mocks/state/token";
+import { authenticate, findAccountFromRequest } from "@/mocks/utils/auth";
+import { fail, ok } from "@/mocks/utils/response";
 
-const ok = <TData>(data: TData) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "SUCCESS", data, error: null },
-    { status: 200 }
-  );
-
-const fail = <TData = null>(error: ApiErrorResponse) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "ERROR", data: null, error },
-    { status: error.status }
-  );
-
-type MockThemeListItem = Omit<ThemeListItem, "liked">;
+export type MockThemeListItem = Omit<ThemeListItem, "liked">;
 type MockThemeSeed = Omit<MockThemeListItem, "imageUrl">;
 
 /**
  * 크롤러가 실제로 수집한 포스터 URL 일부. next.config.ts 의 remotePatterns 를 모두 거치도록
  * 소스별로 섞어 두었고, 포스터가 없는 테마의 빈 썸네일도 확인할 수 있도록 null 을 하나 끼운다.
  */
-const MOCK_POSTER_POOL: (string | null)[] = [
+export const MOCK_POSTER_POOL: (string | null)[] = [
   "https://zeroworldkorea.com/file/theme/34_3417622171.png",
   "https://xn--2e0b040a4xj.com/storage/theme/2024_08/12/WwP3c6jOOOXBRBrwUs1JXepMo4WThUGlCfbHqR5C.jpg",
   "https://img.reserv.company/nextedition/konkuk-2/survivor.jpg",
@@ -472,7 +459,6 @@ const GENRE_ORDER: ThemeGenre[] = [
   "SF",
   "COMEDY",
 ];
-const ACTIVITY_ORDER: ThemeActivityLevel[] = ["HIGH", "MEDIUM", "LOW"];
 
 const GEN_NAME_PREFIXES = [
   "황금의",
@@ -543,13 +529,13 @@ function generateCatalogExtras(count: number): MockThemeSeed[] {
       genre: GENRE_ORDER[i % GENRE_ORDER.length],
       difficulty,
       priceFrom: 20000 + difficulty * 1200 + (i % 4) * 500,
-      activityLevel: ACTIVITY_ORDER[i % ACTIVITY_ORDER.length],
+      activityLevel: THEME_ACTIVITY.values[i % THEME_ACTIVITY.values.length],
     };
   });
 }
 
 /** "모든 테마" 목록(필터·정렬·무한 스크롤)의 전체 카탈로그 — 총 200개. */
-const MOCK_THEME_CATALOG: MockThemeListItem[] = [
+export const MOCK_THEME_CATALOG: MockThemeListItem[] = [
   ...HANDWRITTEN_THEMES,
   ...withMockPosters(
     generateCatalogExtras(200 - HANDWRITTEN_THEMES.length),
@@ -591,13 +577,13 @@ const THEME_FACETS: ThemeFacets = {
   ),
   genres: buildFacet(
     (item) => item.genre,
-    GENRE_ORDER,
-    (v) => GENRE_LABEL[v]
+    THEME_GENRE.values,
+    THEME_GENRE.label
   ),
   activityLevels: buildFacet(
     (item) => item.activityLevel,
-    ACTIVITY_ORDER,
-    (v) => ACTIVITY_LABEL[v]
+    THEME_ACTIVITY.values,
+    formatActivityLabel
   ),
 };
 
@@ -609,13 +595,10 @@ function sortCatalog(
   items: MockThemeListItem[],
   sort: ThemeSortOption
 ): MockThemeListItem[] {
-  const ACTIVITY_WEIGHT: Record<ThemeActivityLevel, number> = {
-    HIGH: 0,
-    MEDIUM: 1,
-    LOW: 2,
-  };
   const activityWeight = (item: MockThemeListItem) =>
-    item.activityLevel === null ? 3 : ACTIVITY_WEIGHT[item.activityLevel];
+    item.activityLevel === null
+      ? THEME_ACTIVITY.values.length
+      : THEME_ACTIVITY.values.indexOf(item.activityLevel);
   const byActivity = (a: MockThemeListItem, b: MockThemeListItem) =>
     activityWeight(a) - activityWeight(b);
   const nullsLast = (
@@ -654,63 +637,6 @@ function sortCatalog(
     default:
       return [...items].sort(byActivity);
   }
-}
-
-/** Authorization 헤더가 있으면 계정을 찾아 반환하고, 없거나 유효하지 않으면 null(비로그인 취급). */
-function findAccountFromRequest(request: Request) {
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
-  if (!token || token === MOCK_EXPIRED_ACCESS_JWT) return null;
-
-  const email = getEmailFromToken(token);
-  return email ? (accountStore.findByEmail(email) ?? null) : null;
-}
-
-/** /theme/{id}/like 처럼 로그인이 필수인 핸들러가 공유하는 인증 단계. */
-function authenticate(
-  request: Request
-): { email: string } | { error: ApiErrorResponse<ThemeAuthErrorCode> } {
-  const authHeader = request.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
-
-  if (!token) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_MISSING",
-        message: "인증 토큰이 없습니다.",
-        status: 401,
-      },
-    };
-  }
-
-  if (token === MOCK_EXPIRED_ACCESS_JWT) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_EXPIRED",
-        message: "인증 토큰이 만료되었습니다.",
-        status: 401,
-      },
-    };
-  }
-
-  const email = getEmailFromToken(token);
-  const account = email ? accountStore.findByEmail(email) : undefined;
-
-  if (!account) {
-    return {
-      error: {
-        code: "AUTH_TOKEN_INVALID",
-        message: "유효하지 않은 인증 토큰입니다.",
-        status: 401,
-      },
-    };
-  }
-
-  return { email: account.email };
 }
 
 const MOCK_THEME_COLLECTIONS: Record<
@@ -804,7 +730,7 @@ export const handlers = [
     const auth = authenticate(request);
     if ("error" in auth) return fail<PutThemeLikeResponse>(auth.error);
 
-    themeLikeStore.setLiked(auth.email, String(params.id), body.liked);
+    themeLikeStore.setLiked(auth.account.email, String(params.id), body.liked);
 
     return ok<PutThemeLikeResponse>({ liked: body.liked });
   }),

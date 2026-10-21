@@ -1,7 +1,5 @@
-import { http, HttpResponse, delay, passthrough } from "msw";
+import { http, delay, passthrough } from "msw";
 
-import type { ApiErrorResponse } from "@/api/ApiErrorRes";
-import type { ApiResponse } from "@/api/ApiRes";
 import type { LoginRequest } from "@/api/domain/auth/login/request/LoginReq";
 import type { LoginResponse } from "@/api/domain/auth/login/response/LoginRes";
 import type { ReissueRequest } from "@/api/domain/auth/reissue/request/ReissueReq";
@@ -16,22 +14,7 @@ import {
   issueAccessToken,
   issueRefreshToken,
 } from "@/mocks/state/token";
-
-/** getMe 목 핸들러에서 AUTH_TOKEN_EXPIRED를 재현하기 위한 값. accessToken 쿠키에 수동으로 넣어 테스트한다. */
-export const MOCK_EXPIRED_ACCESS_JWT =
-  "eyJhbGciOiJIUzI1NiJ9.fake-expired-access-payload.sig";
-
-const ok = <TData>(data: TData, status = 200) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "SUCCESS", data, error: null },
-    { status }
-  );
-
-const fail = <TData>(error: ApiErrorResponse) =>
-  HttpResponse.json<ApiResponse<TData>>(
-    { result: "ERROR", data: null, error },
-    { status: error.status }
-  );
+import { fail, ok } from "@/mocks/utils/response";
 
 export const handlers = [
   http.post("*/auth/login", async ({ request }) => {

@@ -41,6 +41,8 @@ model User {
   consents       UserConsent[]
   refreshTokens  RefreshToken[]
   themeLikes     ThemeLike[]
+  reviews        Review[]
+  reviewHelpfuls ReviewHelpful[]
 }
 
 model UserConsent {
@@ -165,6 +167,8 @@ model Theme {
   /// 마지막으로 크롤링 결과에서 확인된 시각
   lastSeenAt      DateTime?
   likes           ThemeLike[]
+  slots           Slot[]
+  reviews         Review[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -183,6 +187,68 @@ model ThemeLike {
   @@id([userId, themeId])
   /// 최근 30일 좋아요 수 집계(popularityScore 배치)용
   @@index([themeId, createdAt])
+}
+
+/// 특정 테마의 특정 일시 예약 단위 (백엔드 명세서 §5). crawl:slots 가 upsert 한다.
+model Slot {
+  id         String   @id @default(cuid())
+  themeId    String
+  theme      Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  startsAt   DateTime
+  available  Boolean
+  /// 1인 기준 가격(원). 사이트에 정보가 없으면 null
+  price      Int?
+  /// 마지막으로 크롤링 결과에서 확인된 시각
+  lastSeenAt DateTime
+
+  @@unique([themeId, startsAt])
+}
+
+// ── 리뷰 (요구사항 명세서 §3.5, §4) ──
+
+enum ReviewStatus {
+  PUBLISHED
+  DELETED
+}
+
+model Review {
+  id               String          @id @default(cuid())
+  themeId          String
+  theme            Theme           @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 1~5
+  rating           Int
+  cleared          Boolean
+  /// 탈출 성공 시 남은 시간(초). 실패면 null
+  remainingSeconds Int?
+  hintCount        Int?
+  playerCount      Int?
+  content          String
+  photoUrls        String[]
+  hasSpoiler       Boolean         @default(false)
+  playedAt         DateTime?
+  /// ReviewHelpful 개수. 정렬 · 커서용으로 비정규화해 둔다
+  helpfulCount     Int             @default(0)
+  /// 삭제는 소프트 삭제 (FR-REV-03)
+  status           ReviewStatus    @default(PUBLISHED)
+  helpfuls         ReviewHelpful[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([themeId, status])
+}
+
+/// 리뷰 "도움돼요". 회원당 리뷰별 1회
+model ReviewHelpful {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, reviewId])
+  @@index([reviewId])
 }
 
 model Source {

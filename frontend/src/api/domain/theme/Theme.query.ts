@@ -1,7 +1,14 @@
 import apiClient from "@/api/ApiClient";
 
-import type { ThemeCollectionType } from "@/api/domain/theme/Theme.type";
+import type {
+  ThemeCollectionType,
+  ThemeReviewSort,
+} from "@/api/domain/theme/Theme.type";
 import type { getThemeCollectionResponse } from "@/api/domain/theme/getThemeCollection/response/getThemeCollectionRes";
+import type { getThemeDetailResponse } from "@/api/domain/theme/getThemeDetail/response/getThemeDetailRes";
+import type { GetThemeReviewsRequest } from "@/api/domain/theme/getThemeReviews/request/GetThemeReviewsReq";
+import type { getThemeReviewsResponse } from "@/api/domain/theme/getThemeReviews/response/getThemeReviewsRes";
+import type { getThemeSlotsResponse } from "@/api/domain/theme/getThemeSlots/response/getThemeSlotsRes";
 import type { GetThemesRequest } from "@/api/domain/theme/getThemes/request/GetThemesReq";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
 
@@ -74,6 +81,59 @@ export class ThemeQuery {
       urlPath: "/theme",
       method: "GET",
       params: toQueryParams(params),
+    });
+  }
+
+  /**
+   * 테마 상세 쿼리 키. 목록 쿼리 키(themeListQueryKey) 아래에 두지 않는다 —
+   * 좋아요 같은 목록 갱신 로직이 배열/페이지 모양만 가정하고 있어서, 상세는 따로 갱신한다.
+   */
+  static readonly getThemeDetailQueryKey = (themeId: string) =>
+    ["theme", "detail", themeId] as const;
+
+  static getThemeDetail(themeId: string): Promise<getThemeDetailResponse> {
+    return apiClient<getThemeDetailResponse>({
+      urlPath: `/theme/${themeId}`,
+      method: "GET",
+    });
+  }
+
+  static readonly getThemeSlotsQueryKey = (themeId: string) =>
+    ["theme", "slots", themeId] as const;
+
+  static getThemeSlots(themeId: string): Promise<getThemeSlotsResponse> {
+    return apiClient<getThemeSlotsResponse>({
+      urlPath: `/theme/${themeId}/slots`,
+      method: "GET",
+    });
+  }
+
+  /** 한 테마의 후기 목록 쿼리 키 접두사. 정렬·필터와 관계없이 이 테마의 후기 캐시를 한 번에 갱신할 때 쓴다. */
+  static readonly themeReviewsQueryKey = (themeId: string) =>
+    ["theme", "reviews", themeId] as const;
+
+  /** 후기 목록 쿼리 키. 정렬·사진 후기 필터가 바뀌면 이 아래에서 새 키가 만들어진다. */
+  static readonly getThemeReviewsQueryKey = (
+    themeId: string,
+    options: { sort: ThemeReviewSort; photoOnly: boolean }
+  ) => [...ThemeQuery.themeReviewsQueryKey(themeId), options] as const;
+
+  static getThemeReviews({
+    themeId,
+    sort,
+    photoOnly,
+    cursor,
+    size,
+  }: GetThemeReviewsRequest): Promise<getThemeReviewsResponse> {
+    return apiClient<getThemeReviewsResponse>({
+      urlPath: `/theme/${themeId}/reviews`,
+      method: "GET",
+      params: {
+        sort: sort ?? "HELPFUL",
+        size: size ?? 5,
+        ...(photoOnly && { photoOnly: "true" }),
+        ...(cursor && { cursor }),
+      },
     });
   }
 }

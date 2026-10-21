@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:front:mock"],
       "port": 3000
+    },
+    {
+      "name": "escapers-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:back"],
+      "port": 4000
     }
   ]
 }

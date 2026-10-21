@@ -13,8 +13,8 @@ import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/ge
 import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
 
 /**
- * 같은 테마가 핫한 테마/공포 테마/활동성 테마(배열)와 모든 테마(무한 스크롤 페이지) 양쪽
- * 캐시에 동시에 들어있을 수 있어, 좋아요 변경 시 두 모양을 모두 찾아 갱신한다.
+ * 같은 테마가 핫한 테마/공포 테마/활동성 테마(배열), 모든 테마(무한 스크롤 페이지), 검색 결과
+ * (`{ items }`) 캐시에 동시에 들어있을 수 있어, 좋아요 변경 시 세 모양을 모두 찾아 갱신한다.
  */
 function updateLikeInCache(
   prev: unknown,
@@ -36,6 +36,15 @@ function updateLikeInCache(
           item.id === themeId ? { ...item, liked } : item
         ),
       })),
+    };
+  }
+  if (prev && typeof prev === "object" && "items" in prev) {
+    const typed = prev as { items: ThemeListItem[] };
+    return {
+      ...typed,
+      items: typed.items.map((item) =>
+        item.id === themeId ? { ...item, liked } : item
+      ),
     };
   }
   return prev;

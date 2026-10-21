@@ -72,12 +72,13 @@ npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
 | `src/main.ts`           | API 서버 엔트리. Fastify 어댑터, CORS(프론트 오리진만), 종료 훅                                               |
 | `src/worker.ts`         | 워커 엔트리. HTTP 없이 애플리케이션 컨텍스트만 기동 (`WorkerModule`)                                          |
 | `src/crawl.ts`          | 테마 크롤러 수동 실행 CLI (아래 "테마 크롤러")                                                                |
+| `src/crawl-slots.ts`    | 빈자리 크롤러 수동 실행 CLI (아래 "빈자리 크롤러")                                                            |
 | `src/app.module.ts`     | API 루트 모듈. 전역 응답 인터셉터 · 예외 필터 등록                                                            |
 | `src/common/`           | 응답 엔벨로프(`response/`) · `AppException`·전역 예외 필터(`exception/`) · `ZodValidationPipe`(`validation/`) |
 | `src/infra/prisma/`     | `PrismaService` (전역 모듈, `@prisma/adapter-pg`)                                                             |
 | `src/config/`           | 환경변수 zod 스키마(`env.ts`) · 공용 `AppConfigModule`. 검증 실패 시 종료                                     |
 | `src/modules/<도메인>/` | 기능 모듈. `auth/`(signup·login·reissue·logout, 액세스 토큰 가드 · `@CurrentUser`), `user/`(getMe·정보 수정·탈퇴), `theme/`(목록·컬렉션·좋아요), `reservation/`(빈 틀), `health/` |
-| `src/modules/crawler/`  | 테마 크롤러. `adapters/`(브랜드별 어댑터 · 레지스트리), `http/`(`PoliteFetcher` — robots.txt · 요청 간격 · 차단 감지), `normalize/`(장르·난이도·지역 등 정규화), `theme-crawl.service.ts`(검증 · 저장) |
+| `src/modules/crawler/`  | 테마 · 빈자리 크롤러. `adapters/`(브랜드별 어댑터 · 레지스트리), `http/`(`PoliteFetcher` — robots.txt · 요청 간격 · 차단 감지), `normalize/`(장르·난이도·지역 · 슬롯 시각 정규화), `theme-crawl.service.ts` · `slot-crawl.service.ts`(검증 · 저장), `crawl-run.ts`(`CrawlRun` 기록 헬퍼) |
 | `prisma/schema.prisma`  | DB 스키마 (`User` · `UserConsent` · `RefreshToken` · `Brand` · `Branch` · `Theme` · `ThemeLike` · `Source` · `CrawlRun`). 마이그레이션은 `prisma/migrations/` |
 | `.env.example`          | 환경변수 예시 (커밋됨). `.env` 는 커밋하지 않는다                                                             |
 | `nest-cli.json`         | Nest CLI 설정 (`nest g` 로 모듈·컨트롤러 생성 가능)                                                           |
@@ -90,6 +91,7 @@ npm run worker:dev -w @escapers/backend       # 워커 (src/worker.ts, watch)
 | `prisma:generate`                 | Prisma Client 재생성                          |
 | `start` / `start:worker`          | 빌드 결과로 API / 워커 실행                   |
 | `crawl`                           | 테마 크롤러 수동 실행 (아래 "테마 크롤러")    |
+| `crawl:slots`                     | 빈자리 크롤러 수동 실행 (아래 "빈자리 크롤러") |
 | `lint` · `typecheck`              | ESLint(typescript-eslint) · 타입 검사         |
 
 ### 테마 크롤러
@@ -118,6 +120,29 @@ npm run crawl -w @escapers/backend -- all           # 등록된 어댑터 전체
   1. `src/modules/crawler/adapters/` 에 `CrawlerAdapter` 를 구현하고 `adapter.registry.ts` 의 `ADAPTERS` 에 추가한다.
   2. 포스터 이미지 호스트를 `frontend/next.config.ts` 의 `images.remotePatterns` 에 추가한다 (없으면 이미지가 400).
   3. 위 어댑터 표를 갱신한다.
+
+### 빈자리 크롤러
+
+수집된 `OPEN` 테마의 예약 시간(슬롯)을 한국 시간 기준 오늘부터 N일치(기본 7일, 최대 14일) 읽어 `Slot` 에 저장한다
+(`src/crawl-slots.ts`, 실행 전 `build` 를 자동으로 돌린다). 테마 상세의 "예약 가능 시간"이 이 데이터를 보여준다.
+테마를 먼저 수집해야 한다. 자동 감시(BullMQ · 감시 등록 기반)는 이후 추가한다.
+
+```bash
+npm run crawl:slots -w @escapers/backend -- jigubyeol     # 지구별방탈출 (지점 · 날짜당 1요청, 약 1분)
+npm run crawl:slots -w @escapers/backend -- zeroworld     # 제로월드 (테마 · 날짜당 1요청, 약 10분)
+npm run crawl:slots -w @escapers/backend -- all 3         # 지원하는 어댑터 전체, 3일치
+```
+
+| 어댑터 키     | 빈자리 수집 | 비고                                                                     |
+| ------------- | ----------- | ------------------------------------------------------------------------ |
+| `zeroworld`   | ✓           | 예약 화면 POST `theme_time_list`(조회 전용)                              |
+| `jigubyeol`   | ✓           | `/reservation?branch=&date=`. 예약 기간 밖 날짜는 슬롯 없음으로 처리      |
+| `nextedition` | ✗           | 예약 시간을 robots.txt 금지 경로(`/api/`)로만 받아와 수집하지 않는다     |
+
+- 결과는 `CrawlRun(kind = slots)` 에 기록된다 (`created` · `opened`(마감 → 가능) · `closed` · `unchanged` · `missing` · `invalid` · `unknownThemes`).
+  빈자리가 새로 생긴 시간은 로그에 `빈자리가 생겼습니다: 테마 날짜 시간` 으로 찍힌다.
+- 전에 있던 시간이 사이트에서 사라지면 마감(`available = false`)으로 바꾼다. 검증이 일부라도 실패하면(`PARTIAL`) 이 처리는 건너뛴다.
+- `unknownThemes` 가 0 보다 크면 사이트에 새 테마가 생긴 것이므로 테마 크롤러를 다시 실행한다.
 
 ## Lint & 포맷
 

@@ -19,6 +19,8 @@ import type {
  * 숫자 테마 ID는 일부 테마에만 HTML에 노출되고 나머지는 금지 경로(`/api/`)로만 받을 수 있다.
  * 그래서 externalId 는 항상 `{지점 slug}:{테마명}` 으로 만들고, 숫자 ID는 알 때만 예약 링크에 쓴다.
  * (ID 노출 여부가 바뀌어도 externalId 가 흔들리지 않게 하기 위함)
+ *
+ * 빈자리 수집(fetchSlots)은 구현하지 않는다. 예약 화면이 시간을 금지 경로(`/api/booking/…`)로만 받아온다.
  */
 export class NextEditionAdapter implements CrawlerAdapter {
   readonly key = "nextedition";

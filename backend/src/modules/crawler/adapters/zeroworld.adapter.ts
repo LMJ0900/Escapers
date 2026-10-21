@@ -1,10 +1,14 @@
 import { load, type CheerioAPI } from "cheerio";
+import { CrawlParseError } from "../crawler.error";
 import type {
   CrawledBranch,
+  CrawledSlot,
+  CrawledSlotsResult,
   CrawledTheme,
   CrawledThemesResult,
   CrawlerAdapter,
   CrawlerAdapterContext,
+  SlotTargetTheme,
 } from "./crawler.adapter";
 
 /**
@@ -19,6 +23,7 @@ import type {
  * 2. `home.php?go=location`               지점 주소 · 전화
  * 3. POST `rev.make.sel.php` act=theme_list    지점별 테마 번호 목록
  * 4. POST `rev.make.sel.php` act=theme_select  테마 상세 (장르 · 시간 · 인원 · 난이도 · 설명 · 포스터 · 인원별 가격)
+ * 5. POST `rev.make.sel.php` act=theme_time_list  테마 · 날짜별 예약 시간 (빈자리 수집)
  *
  * 테마 목록/상세는 별도 페이지 없이 예약 화면이 POST 로 받는 HTML 조각에만 있다.
  * 조회 전용 요청만 보내고, 예약 생성(rev.make 제출)은 보내지 않는다.
@@ -36,9 +41,8 @@ export class ZeroWorldAdapter implements CrawlerAdapter {
     baseUrl,
     fetcher,
   }: CrawlerAdapterContext): Promise<CrawledThemesResult> {
-    const pageUrl = (query: string) =>
-      `${baseUrl}/layout/res/home.php?${query}`;
-    const selUrl = `${baseUrl}/core/res/rev.make.sel.php`;
+    const pageUrl = (query: string) => revPageUrl(baseUrl, query);
+    const selUrl = revSelUrl(baseUrl);
     const revDays = todayInSeoul();
 
     const spots: Spot[] = [];
@@ -102,7 +106,40 @@ export class ZeroWorldAdapter implements CrawlerAdapter {
     }
     return { branches, themes };
   }
+
+  /** 테마 · 날짜마다 theme_time_list 를 한 번씩 조회한다 (지점 단위 조회가 없다) */
+  async fetchSlots(
+    { baseUrl, fetcher }: CrawlerAdapterContext,
+    themes: SlotTargetTheme[],
+    dates: string[]
+  ): Promise<CrawledSlotsResult> {
+    const slots: CrawledSlot[] = [];
+    for (const { externalId, branchExternalId } of themes) {
+      const referer = revPageUrl(
+        baseUrl,
+        `go=rev.make&zizum_num=${branchExternalId}&theme_num=${externalId}`
+      );
+      for (const date of dates) {
+        const response = await fetcher.postForm(
+          revSelUrl(baseUrl),
+          {
+            act: "theme_time_list",
+            zizum_num: branchExternalId,
+            rev_days: date,
+            theme_num: externalId,
+          },
+          { referer }
+        );
+        slots.push(...parseTimeList(response, externalId, date));
+      }
+    }
+    return { slots };
+  }
 }
+
+const revPageUrl = (baseUrl: string, query: string) =>
+  `${baseUrl}/layout/res/home.php?${query}`;
+const revSelUrl = (baseUrl: string) => `${baseUrl}/core/res/rev.make.sel.php`;
 
 /** A: 제로월드, B: 제로월드 다이브 */
 const SUBJECTS = ["A", "B"] as const;
@@ -217,6 +254,32 @@ function parseThemeDetail(response: string, baseUrl: string): ThemeDetail {
     imageUrl: imagePath ? new URL(imagePath, baseUrl).href : undefined,
     priceRaw: priceRaw || undefined,
   };
+}
+
+/**
+ * theme_time_list 응답은 `{시간 버튼 HTML}{@}{"7/8 가능"}` 두 조각이고, 오류면 "9999" 만 온다.
+ * 마감된 시간은 버튼에 `disable` 클래스가 붙고 선택 링크가 없다.
+ */
+function parseTimeList(
+  response: string,
+  themeExternalId: string,
+  date: string
+): CrawledSlot[] {
+  const body = response.trim();
+  if (body === "9999") {
+    throw new CrawlParseError(
+      `시간 목록을 받지 못했습니다 (테마 ${themeExternalId}, ${date})`
+    );
+  }
+  const $ = load(body.split("{@}")[0]);
+  return $("a.choice-time__time")
+    .map((_, el): CrawledSlot => ({
+      themeExternalId,
+      date,
+      time: $(el).text().trim(),
+      available: !$(el).hasClass("disable"),
+    }))
+    .get();
 }
 
 /** 예약 화면이 보내는 rev_days 형식 (YYYY-MM-DD, 한국 시간) */

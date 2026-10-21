@@ -11,6 +11,8 @@ import type { getThemeReviewsResponse } from "@/api/domain/theme/getThemeReviews
 import type { getThemeSlotsResponse } from "@/api/domain/theme/getThemeSlots/response/getThemeSlotsRes";
 import type { GetThemesRequest } from "@/api/domain/theme/getThemes/request/GetThemesReq";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
+import type { SearchThemesRequest } from "@/api/domain/theme/searchThemes/request/SearchThemesReq";
+import type { searchThemesResponse } from "@/api/domain/theme/searchThemes/response/searchThemesRes";
 
 /** 배열 필터는 선택 순서가 달라도 같은 쿼리 키를 가지도록 정렬해서 직렬화한다. */
 function serializeThemeFilters(filters: Omit<GetThemesRequest, "cursor">) {
@@ -81,6 +83,23 @@ export class ThemeQuery {
       urlPath: "/theme",
       method: "GET",
       params: toQueryParams(params),
+    });
+  }
+
+  /**
+   * 헤더 검색 결과 쿼리 키. 목록 쿼리 키 아래에 둬서 좋아요 변경이 검색 결과에도 함께 반영된다.
+   * 응답이 `{ items }` 모양이라 useThemeLike 의 캐시 갱신도 그 모양을 알고 있어야 한다.
+   */
+  static readonly searchThemesQueryKey = (keyword: string) =>
+    [...ThemeQuery.themeListQueryKey, "search", keyword] as const;
+
+  static searchThemes({
+    keyword,
+  }: SearchThemesRequest): Promise<searchThemesResponse> {
+    return apiClient<searchThemesResponse>({
+      urlPath: "/theme/search",
+      method: "GET",
+      params: { keyword },
     });
   }
 

@@ -8,6 +8,7 @@ import { http, delay } from "msw";
 import type { getThemeCollectionResponse } from "@/api/domain/theme/getThemeCollection/response/getThemeCollectionRes";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
 import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
+import type { searchThemesResponse } from "@/api/domain/theme/searchThemes/response/searchThemesRes";
 import type {
   ThemeCollectionType,
   ThemeFacetOption,
@@ -639,6 +640,71 @@ function sortCatalog(
   }
 }
 
+/** 검색어를 공백 기준 단어로 쪼갠다. 대소문자는 구분하지 않는다. */
+function toSearchTokens(keyword: string): string[] {
+  return keyword.toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+/**
+ * 헤더 검색: 단어마다 테마명·장르·브랜드·지점·지역 중 어딘가에 들어 있어야 통과한다.
+ * 점수는 테마명 > 장르 > 그 외 순으로 높고, 같으면 카탈로그 순서를 따른다.
+ */
+function searchCatalog(keyword: string): MockThemeListItem[] {
+  const tokens = toSearchTokens(keyword);
+  if (tokens.length === 0) return [];
+
+  const scored = MOCK_THEME_CATALOG.flatMap((item, index) => {
+    const name = item.name.toLowerCase();
+    const genre = THEME_GENRE.label(item.genre).toLowerCase();
+    const place =
+      `${item.brandName} ${item.branchName} ${item.region}`.toLowerCase();
+
+    let score = 0;
+    for (const token of tokens) {
+      if (name.startsWith(token)) score += 4;
+      else if (name.includes(token)) score += 3;
+      else if (genre.includes(token)) score += 2;
+      else if (place.includes(token)) score += 1;
+      else return [];
+    }
+    return [{ item, score, index }];
+  });
+
+  return scored
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({ item }) => item);
+}
+
+/** 결과에 많이 나온 장르·브랜드·지역을 연관 검색어로 뽑는다. 검색어와 겹치는 값은 뺀다. */
+function buildRelatedKeywords(
+  results: MockThemeListItem[],
+  searchKeyword: string,
+  limit = 4
+): string[] {
+  const tokens = toSearchTokens(searchKeyword);
+  const counts = new Map<string, number>();
+  for (const item of results) {
+    for (const keyword of [
+      THEME_GENRE.label(item.genre),
+      item.brandName,
+      item.region,
+    ]) {
+      counts.set(keyword, (counts.get(keyword) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .filter(([keyword]) => {
+      const lower = keyword.toLowerCase();
+      return !tokens.some(
+        (token) => lower.includes(token) || token.includes(lower)
+      );
+    })
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([keyword]) => keyword);
+}
+
 const MOCK_THEME_COLLECTIONS: Record<
   ThemeCollectionType,
   (MockThemeListItem & { rank: number })[]
@@ -720,6 +786,31 @@ export const handlers = [
       nextCursor,
       totalCount: sorted.length,
       facets: THEME_FACETS,
+    });
+  }),
+
+  /**
+   * 헤더 검색 — 테마명·장르·지점. 테마 상세 핸들러(`/theme/:id`)보다 먼저 등록돼 있어야 "search"가
+   * 테마 id 로 잡히지 않는다. (handlers/index.ts 의 순서 참고)
+   */
+  http.get("*/theme/search", async ({ request }) => {
+    await delay(300);
+
+    const keyword = (
+      new URL(request.url).searchParams.get("keyword") ?? ""
+    ).trim();
+    const results = searchCatalog(keyword);
+
+    const account = findAccountFromRequest(request);
+    const items: ThemeListItem[] = results.map((item) => ({
+      ...item,
+      liked: account ? themeLikeStore.isLiked(account.email, item.id) : false,
+    }));
+
+    return ok<searchThemesResponse>({
+      items,
+      totalCount: items.length,
+      relatedKeywords: buildRelatedKeywords(results, keyword),
     });
   }),
 

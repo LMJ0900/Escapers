@@ -1,0 +1,77 @@
+.root {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.genreTag {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  padding: 4px 10px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.divider {
+  width: 1px;
+  height: 12px;
+  background: var(--color-border);
+}
+
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.ratingStar {
+  color: var(--color-brand);
+}
+
+.ratingCount {
+  color: var(--color-stone-500);
+}
+
+@media (max-width: 768px) {
+  .root {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 32px;
+    line-height: 1.15;
+  }
+}

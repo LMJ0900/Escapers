@@ -1,0 +1,225 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-margin-top: 24px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+}
+
+.mapBox {
+  position: relative;
+  height: 360px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.mapCanvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* ================= 지도 위 컨트롤 ================= */
+.zoom {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.zoomButton {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.zoomButton + .zoomButton {
+  border-top: none;
+}
+
+.zoomButton:hover {
+  background: var(--color-surface-hover);
+}
+
+/* ================= 마커 + 지점명 말풍선 (카카오 CustomOverlay 안에 들어간다) ================= */
+.overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.overlayLabel {
+  padding: 7px 12px;
+  border: 1px solid var(--color-text);
+  background: var(--color-surface);
+  font-family: var(--font-text);
+  font-size: 13px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* 회전한 네모의 뾰족한 모서리가 좌표를 가리키는 핀. 회전으로 아래로 튀어나오는 만큼 마진으로 맞춘다. */
+.overlayPin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 5px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-brand-hover);
+  transform: rotate(-45deg);
+}
+
+.overlayPin::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+/* ================= 불러오는 중 / 실패 ================= */
+.state {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-surface-sunken);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.stateError {
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  font-size: 22px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorIcon {
+  font-size: 24px;
+  color: var(--color-danger);
+}
+
+/* ================= 주소 정보 ================= */
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 360px;
+  min-width: 0;
+  margin: 0;
+}
+
+.infoItem {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.infoLabel {
+  width: 64px;
+  flex-shrink: 0;
+  color: var(--color-stone-500);
+}
+
+.infoValue {
+  margin: 0;
+  font-weight: 300;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  font-family: var(--font-text);
+  font-size: 13px;
+  color: var(--color-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.button:hover {
+  border-color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 24px;
+  }
+
+  .mapBox {
+    height: 240px;
+  }
+
+  .infoItem {
+    gap: 14px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+}

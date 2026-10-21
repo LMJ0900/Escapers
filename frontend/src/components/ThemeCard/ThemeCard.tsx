@@ -1,7 +1,7 @@
 import type { ThemeListItem } from "@/api/domain/theme/Theme.type";
+import ActivityLevel from "@/components/ActivityLevel";
 import { bindClassNames } from "@/util/BindClassName";
 
-import ActivityBadge from "./_components/ActivityBadge/ActivityBadge";
 import DifficultyMeter from "./_components/DifficultyMeter/DifficultyMeter";
 import LikeButton from "./_components/LikeButton/LikeButton";
 import ThumbLink from "./_components/ThumbLink/ThumbLink";
@@ -51,9 +51,7 @@ export default function ThemeCard({
 
       <div className={cx("metaRow")}>
         <DifficultyMeter difficulty={theme.difficulty} />
-        {theme.activityLevel && (
-          <ActivityBadge activityLevel={theme.activityLevel} />
-        )}
+        {theme.activityLevel && <ActivityLevel level={theme.activityLevel} />}
       </div>
     </div>
   );

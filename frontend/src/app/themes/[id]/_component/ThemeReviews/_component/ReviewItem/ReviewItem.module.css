@@ -1,0 +1,159 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-logo);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.authorInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nickname {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.authorMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-stone-500);
+}
+
+.play {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.result {
+  padding: 3px 9px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.win {
+  color: var(--color-success-strong);
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+}
+
+.lose {
+  color: var(--color-text-muted);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+}
+
+.content {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--color-stone-800);
+}
+
+.photos {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.photo {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.photoImage {
+  object-fit: cover;
+}
+
+.helpful {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-text);
+  font-size: 12px;
+  color: var(--color-stone-700);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.helpful:hover {
+  border-color: var(--color-text);
+}
+
+.helpful:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.helpfulOn {
+  border-color: var(--color-brand);
+  color: var(--color-brand-text);
+}
+
+@media (max-width: 768px) {
+  .root {
+    gap: 12px;
+    padding: 22px 0;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .content {
+    line-height: 1.75;
+  }
+
+  .photo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .helpful {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}

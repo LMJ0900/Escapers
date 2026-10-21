@@ -1,44 +1,7 @@
 import type { GetThemesRequest } from "@/api/domain/theme/getThemes/request/GetThemesReq";
-import type {
-  ThemeActivityLevel,
-  ThemeGenre,
-  ThemeSortOption,
-} from "@/api/domain/theme/Theme.type";
+import { THEME_ACTIVITY, THEME_GENRE } from "@escapers/shared";
 
-/** 테마 카드(캐러셀·모든 테마 공통)에 쓰는 장르/활동성 표시 라벨. */
-export const GENRE_LABEL: Record<ThemeGenre, string> = {
-  HORROR: "공포",
-  IMMERSIVE: "이머시브",
-  MYSTERY: "추리",
-  SF: "SF",
-  COMEDY: "코미디",
-  THRILLER: "스릴러",
-  FANTASY: "판타지",
-  ADVENTURE: "어드벤처",
-  DRAMA: "드라마",
-  ROMANCE: "로맨스",
-  OUTDOOR: "야외",
-  ETC: "기타",
-};
-
-export const ACTIVITY_LABEL: Record<ThemeActivityLevel, string> = {
-  HIGH: "활동 높음",
-  MEDIUM: "활동 보통",
-  LOW: "활동 적음",
-};
-
-export const THEME_SORT_OPTIONS: { value: ThemeSortOption; label: string }[] = [
-  { value: "POPULAR", label: "인기순" },
-  { value: "NEWEST", label: "최신순" },
-  { value: "PRICE_ASC", label: "가격 낮은 순" },
-  { value: "PRICE_DESC", label: "가격 높은 순" },
-  { value: "DIFFICULTY_DESC", label: "난이도 높은순" },
-  { value: "DIFFICULTY_ASC", label: "난이도 낮은순" },
-];
-
-const SORT_VALUES = THEME_SORT_OPTIONS.map((option) => option.value);
-const GENRE_VALUES = Object.keys(GENRE_LABEL);
-const ACTIVITY_VALUES = ["HIGH", "MEDIUM", "LOW"];
+import { THEME_SORT } from "@/api/domain/theme/Theme.label";
 
 export type ThemeFilterState = Required<
   Pick<GetThemesRequest, "brands" | "regions" | "genres" | "activityLevels">
@@ -61,18 +24,14 @@ export function parseThemeSearchParams(
   const sortRaw = Array.isArray(searchParams.sort)
     ? searchParams.sort[0]
     : searchParams.sort;
-  const sort = SORT_VALUES.includes(sortRaw as ThemeSortOption)
-    ? (sortRaw as ThemeSortOption)
-    : "POPULAR";
+  const sort = sortRaw && THEME_SORT.is(sortRaw) ? sortRaw : "POPULAR";
 
   return {
     brands: splitParam(searchParams.brands),
     regions: splitParam(searchParams.regions),
-    genres: splitParam(searchParams.genres).filter((genre) =>
-      GENRE_VALUES.includes(genre)
-    ),
-    activityLevels: splitParam(searchParams.activityLevels).filter((activity) =>
-      ACTIVITY_VALUES.includes(activity)
+    genres: splitParam(searchParams.genres).filter(THEME_GENRE.is),
+    activityLevels: splitParam(searchParams.activityLevels).filter(
+      THEME_ACTIVITY.is
     ),
     sort,
   };

@@ -1,0 +1,12 @@
+.root {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.star {
+  color: var(--color-border);
+}
+
+.starOn {
+  color: var(--color-brand);
+}

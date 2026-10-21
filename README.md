@@ -363,7 +363,7 @@ src/
   provider/             전역 프로바이더. CoreProvider 가 아래를 조립
     MSWProvider.tsx       개발 환경 API 목킹(MSW) 기동
     QueryProvider.tsx     QueryClientProvider + Devtools + 공통 에러 toast
-  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러, state/ — accountStore.ts(가입 계정 반영) · themeLikeStore.ts(계정별 좋아요) · token.ts, browser.ts · server.ts · init.ts)
+  mocks/                MSW 목킹 (handlers/ 도메인별 핸들러 + index.ts(전체 목록), state/ — accountStore.ts(가입 계정 반영) · themeLikeStore.ts(계정별 좋아요) · reviewHelpfulStore.ts(계정별 도움이 돼요) · token.ts, utils/ — response.ts(ok/fail 엔벨로프) · auth.ts(공통 인증 단계), browser.ts · server.ts · init.ts)
   constant/             공용 상수 (token/ 쿠키 옵션, environment/ 환경 변수 래퍼 등)
   styles/               전역 스타일 / 테마 토큰 (colors.css · semantic.css · fonts.ts)
   util/                 순수 헬퍼 함수 (BindClassName 등)
@@ -444,8 +444,10 @@ CLAUDE.md               `@frontend/AGENTS.md` · `@docs/publishing-guidelines.md
   `NEXT_PUBLIC_API_MOCKING=enabled` 를 주입해 `next dev` 를 실행하며, 이미 설정된 프로세스 환경변수는
   `.env*` 파일이 덮어쓰지 않으므로 개인 env 설정과 무관하게 항상 목킹으로 뜬다.
   브라우저 콘솔에 `[MSW] Mocking enabled.` 가 찍히면 정상.
-- `src/mocks/handlers/` — 도메인별 핸들러. `src/mocks/browser.ts`(클라이언트) ·
-  `src/mocks/server.ts`(서버) · `src/mocks/init.ts` 가 환경별 워커를 기동한다.
+- `src/mocks/handlers/` — 도메인별 핸들러. 새 핸들러는 `handlers/index.ts` 목록에만 추가하면
+  `src/mocks/browser.ts`(클라이언트) · `src/mocks/server.ts`(서버)가 함께 쓴다. `src/mocks/init.ts` 가 브라우저 워커를 기동한다.
+- 응답 엔벨로프는 `src/mocks/utils/response.ts`(`ok`/`fail`), 로그인 필수 핸들러의 인증은
+  `src/mocks/utils/auth.ts`(`authenticate`/`findAccountFromRequest`)를 쓴다.
 - 브라우저 목킹은 `provider/MSWProvider.tsx` 에서, 서버(RSC/Route Handler/Proxy) 목킹은
   `src/instrumentation.ts` 에서 켠다.
 - 실제 백엔드에 붙이려면 `npm run dev:front` 로 띄운다 (`NEXT_PUBLIC_API_BASE_URL` 필요, "환경 변수" 참고).

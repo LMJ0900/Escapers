@@ -9,9 +9,9 @@ import {
   isThemeFilterEmpty,
   parseThemeSearchParams,
   themeFilterStateToSearchParams,
-  THEME_SORT_OPTIONS,
   type ThemeFilterState,
 } from "@/api/domain/theme/Theme.filter";
+import { THEME_SORT } from "@/api/domain/theme/Theme.label";
 import { ThemeQuery } from "@/api/domain/theme/Theme.query";
 import type { ThemeSortOption } from "@/api/domain/theme/Theme.type";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
@@ -128,9 +128,7 @@ export default function ThemeBrowser({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isSortOpen]);
 
-  const currentSortLabel =
-    THEME_SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ??
-    "인기순";
+  const currentSortLabel = THEME_SORT.label(filters.sort);
 
   // ================= 모바일 필터 바텀시트 =================
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -170,19 +168,19 @@ export default function ThemeBrowser({
       </button>
       {isSortOpen && (
         <div className={cx("sortMenu")} role="listbox">
-          {THEME_SORT_OPTIONS.map((option) => (
+          {THEME_SORT.values.map((value) => (
             <button
-              key={option.value}
+              key={value}
               type="button"
               role="option"
-              aria-selected={option.value === filters.sort}
+              aria-selected={value === filters.sort}
               className={cx("sortOption", {
-                sortOptionOn: option.value === filters.sort,
+                sortOptionOn: value === filters.sort,
               })}
-              onClick={() => handleSortChange(option.value)}
+              onClick={() => handleSortChange(value)}
             >
-              {option.label}
-              {option.value === filters.sort && <FiCheck aria-hidden />}
+              {THEME_SORT.label(value)}
+              {value === filters.sort && <FiCheck aria-hidden />}
             </button>
           ))}
         </div>

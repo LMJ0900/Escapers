@@ -1,0 +1,50 @@
+.root {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-stone-500);
+}
+
+.value {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.difficulty {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--color-border);
+}
+
+.difficultyOn {
+  color: var(--color-stone-700);
+}
+
+@media (max-width: 768px) {
+  .root {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 22px 0;
+  }
+
+  /* 모바일에서는 장르를 제목 위 태그로 이미 보여주므로 정보 줄에서는 뺀다. */
+  .factGenre {
+    display: none;
+  }
+}

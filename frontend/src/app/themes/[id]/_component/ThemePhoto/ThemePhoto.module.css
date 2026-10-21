@@ -1,0 +1,11 @@
+.root {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.poster {
+  object-fit: cover;
+}

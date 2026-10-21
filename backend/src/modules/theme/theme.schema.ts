@@ -99,3 +99,103 @@ export interface GetThemesResponse {
 export interface PutThemeLikeResponse {
   liked: boolean;
 }
+
+// ── 테마 상세 · 예약 가능 시간 · 후기 ──
+
+export const THEME_REVIEW_SORT_OPTIONS = [
+  "HELPFUL",
+  "NEWEST",
+  "RATING_DESC",
+  "RATING_ASC",
+] as const;
+export type ThemeReviewSort = (typeof THEME_REVIEW_SORT_OPTIONS)[number];
+
+export const getThemeReviewsQuerySchema = z.object({
+  sort: z.enum(THEME_REVIEW_SORT_OPTIONS).default("HELPFUL"),
+  /** 프론트는 true 일 때만 보낸다 */
+  photoOnly: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  cursor: z.string().min(1).optional(),
+  size: z.coerce.number().int().min(1).max(50).default(5),
+});
+export type GetThemeReviewsQuery = z.infer<typeof getThemeReviewsQuerySchema>;
+
+/** 테마 상세의 지점 정보. 크롤링 소스에 정보가 없는 항목은 null 이다. */
+export interface ThemeBranchInfo {
+  /** 화면에 보여줄 지점 이름 (예: "제로월드 강남점") */
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  transit: string | null;
+  phone: string | null;
+  openingHours: string | null;
+  /** 외부 예약 페이지. 예약 대행은 범위 밖이라 이 링크로 이동시킨다. */
+  bookingUrl: string | null;
+}
+
+/** 프론트 ThemeDetail 과 같은 형태. 카드 정보(ThemeListItem)에 상세 항목을 더한다. */
+export interface ThemeDetail extends Omit<ThemeListItem, "rank"> {
+  likeCount: number;
+  minPlayers: number | null;
+  maxPlayers: number | null;
+  /** 플레이 시간(분) */
+  playMinutes: number | null;
+  description: string | null;
+  /** 리뷰가 없으면 null */
+  ratingAvg: number | null;
+  reviewCount: number;
+  branch: ThemeBranchInfo;
+}
+
+export interface ThemeSlot {
+  /** "HH:mm" (한국 시간) */
+  time: string;
+  available: boolean;
+}
+
+export interface ThemeSlotDay {
+  /** "YYYY-MM-DD" (한국 시간) */
+  date: string;
+  slots: ThemeSlot[];
+}
+
+export interface GetThemeSlotsResponse {
+  /** 오늘부터 7일치. 날짜 오름차순 */
+  days: ThemeSlotDay[];
+}
+
+export interface ThemeReview {
+  id: string;
+  nickname: string;
+  /** 1~5 */
+  rating: number;
+  /** 작성일 "YYYY-MM-DD" (한국 시간) */
+  writtenAt: string;
+  playerCount: number | null;
+  cleared: boolean;
+  /** 탈출 성공 시 남은 시간(초) */
+  remainingSeconds: number | null;
+  hintCount: number | null;
+  content: string;
+  photoUrls: string[];
+  helpfulCount: number;
+  helped: boolean;
+}
+
+export interface ThemeReviewSummary {
+  /** 리뷰가 없으면 null */
+  ratingAvg: number | null;
+  reviewCount: number;
+  /** 5점 → 1점 순서 */
+  distribution: { rating: number; count: number }[];
+}
+
+export interface GetThemeReviewsResponse {
+  items: ThemeReview[];
+  nextCursor: string | null;
+  /** 필터(사진 후기만)와 관계없이 테마 전체 후기 기준의 평점 요약 */
+  summary: ThemeReviewSummary;
+}

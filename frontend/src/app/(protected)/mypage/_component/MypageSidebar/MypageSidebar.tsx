@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ROLE_LABEL } from "@/api/domain/user/User.label";
 import { UserQuery } from "@/api/domain/user/User.query";
 import type { getMeResponse } from "@/api/domain/user/getMe/response/getMeRes";
 import { bindClassNames } from "@/util/BindClassName";
@@ -11,12 +12,6 @@ import { bindClassNames } from "@/util/BindClassName";
 import styles from "./MypageSidebar.module.css";
 
 const cx = bindClassNames(styles);
-
-const ROLE_LABEL: Record<getMeResponse["role"], string> = {
-  MEMBER: "일반 회원",
-  OWNER: "사장님",
-  ADMIN: "관리자",
-};
 
 const NAV_ITEMS = [
   { label: "회원정보", href: "/mypage" },

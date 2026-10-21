@@ -1,0 +1,153 @@
+.openButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.openButton:hover {
+  color: var(--color-logo);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  /* 44px 검색창이 펼쳐져도 헤더 높이가 늘지 않도록 헤더의 위아래 여백 안으로 넣는다. */
+  margin: -13px 0;
+}
+
+.backButton {
+  display: none;
+}
+
+/* 검색창만 의도적으로 둥근 모서리(pill)를 쓴다. 나머지 UI 는 각진 모서리. */
+.field {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  width: min(340px, 30vw);
+  padding: 0 6px 0 16px;
+  border: 1px solid var(--color-text);
+  border-radius: 22px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  animation: expand 0.18s ease-out;
+}
+
+.fieldIcon {
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-text);
+  font-size: 14px;
+  color: var(--color-text);
+  caret-color: var(--color-brand);
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.clearButton:hover {
+  background: var(--color-surface-sunken);
+}
+
+@keyframes expand {
+  from {
+    width: 44px;
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    animation: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .field {
+    width: min(280px, 34vw);
+  }
+}
+
+/* 모바일: 검색창을 열면 화면 전체가 검색 화면이 되고, 상단에 뒤로가기 + 검색창이 고정된다. */
+@media (max-width: 768px) {
+  .bar {
+    box-sizing: border-box;
+    position: fixed;
+    margin: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 21;
+    gap: 4px;
+    padding: 10px 12px 10px 4px;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .backButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .field {
+    flex: 1;
+    width: auto;
+    gap: 8px;
+    padding: 0 4px 0 14px;
+    animation: none;
+  }
+
+  /* 16px 미만이면 iOS 가 입력창에 포커스를 줄 때 화면을 확대한다. */
+  .input {
+    font-size: 16px;
+  }
+}

@@ -15,3 +15,10 @@
     padding: 20px 24px;
   }
 }
+
+/* 검색창이 펼쳐진 동안은 가운데 메뉴가 들어갈 자리가 모자라 글자가 줄바꿈되므로, 좁은 데스크톱에서는 메뉴를 숨긴다. */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .root:has([data-search-open]) > nav {
+    display: none;
+  }
+}

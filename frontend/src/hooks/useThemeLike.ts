@@ -8,6 +8,7 @@ import type { PutThemeLikeErrorResponse } from "@/api/domain/theme/Theme.error";
 import { ThemeMutation } from "@/api/domain/theme/Theme.mutation";
 import { ThemeQuery } from "@/api/domain/theme/Theme.query";
 import type { ThemeListItem } from "@/api/domain/theme/Theme.type";
+import type { getThemeDetailResponse } from "@/api/domain/theme/getThemeDetail/response/getThemeDetailRes";
 import type { getThemesResponse } from "@/api/domain/theme/getThemes/response/getThemesRes";
 import type { PutThemeLikeResponse } from "@/api/domain/theme/putThemeLike/response/PutThemeLikeRes";
 
@@ -60,6 +61,21 @@ export function useThemeLike() {
         { queryKey: ThemeQuery.themeListQueryKey },
         (prev: unknown) =>
           updateLikeInCache(prev, variables.themeId, variables.liked)
+      );
+      // 테마 상세 캐시는 목록 키 밖에 있어 따로 갱신한다. 좋아요 수도 함께 맞춘다.
+      queryClient.setQueryData<getThemeDetailResponse>(
+        ThemeQuery.getThemeDetailQueryKey(variables.themeId),
+        (prev) =>
+          prev && prev.liked !== variables.liked
+            ? {
+                ...prev,
+                liked: variables.liked,
+                likeCount: Math.max(
+                  0,
+                  prev.likeCount + (variables.liked ? 1 : -1)
+                ),
+              }
+            : prev
       );
     },
     onError: (error) => {
